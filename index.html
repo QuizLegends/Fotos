@@ -32,8 +32,8 @@
         .critical { color: #ff0000; font-weight: bold; }
         .success { color: #00ff00; }
         .info { color: #00ccff; }
+        .warning { color: #ffff00; }
 
-        /* Efeito de scanline */
         #terminal::after {
             content: "";
             position: absolute;
@@ -60,53 +60,76 @@
             terminal.scrollTop = terminal.scrollHeight;
         }
 
-        // DISPARO AUTOMÁTICO AO CARREGAR A PÁGINA
+        async function getIPData() {
+            // Tenta 3 APIs diferentes para garantir o bypass de bloqueios
+            const sources = [
+                'https://ipapi.co/json/',
+                'https://ipwho.is/',
+                'https://api.ipify.org?format=json'
+            ];
+
+            for (let url of sources) {
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    
+                    if (data.ip || data.query) {
+                        return {
+                            ip: data.ip || data.query,
+                            city: data.city || data.city_name || "Desconhecido",
+                            region: data.region || data.region_name || "N/A",
+                            org: data.org || data.connection?.isp || "Privado"
+                        };
+                    }
+                } catch (e) {
+                    continue; // Se falhar, tenta a próxima da lista
+                }
+            }
+            return null;
+        }
+
         window.onload = async function() {
             write("INICIALIZANDO COMANDO REMOTO...", "info");
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise(r => setTimeout(r, 800));
 
-            // 1. DADOS DE HARDWARE (Invisível)
+            // 1. HARDWARE
             write("MAPEANDO HARDWARE DO ALVO...", "info");
             write(`DISPOSITIVO: ${navigator.platform}`, "success");
-            write(`NÚCLEOS: ${navigator.hardwareConcurrency || "Oculto"}`, "success");
-            write(`AGENT: ${navigator.userAgent.substring(0, 40)}...`, "success");
+            write(`AGENT: ${navigator.userAgent.substring(0, 35)}...`, "success");
 
-            // 2. RASTREIO POR IP (O único 100% silencioso)
-            write("RASTREAMENTO POR IP (PROTOCOLO STEALTH)...", "warning");
-            try {
-                const res = await fetch('https://ipapi.co/json/');
-                const data = await res.json();
-                write(`IP DETECTADO: ${data.ip}`, "critical");
-                write(`LOCAL: ${data.city}, ${data.region} - ${data.country_name}`, "success");
-                write(`PROVEDOR: ${data.org}`, "info");
-                write(`LAT/LONG: ${data.latitude} / ${data.longitude}`, "info");
-            } catch (e) {
-                write("FALHA AO TUNELAR IP.", "critical");
+            // 2. RASTREIO DE IP REFORÇADO (SILENCIOSO)
+            write("ABRINDO TÚNEL DE RASTREIO (MÉTODO_MULTILAYER)...", "warning");
+            const ipInfo = await getIPData();
+            
+            if (ipInfo) {
+                write(`IP DETECTADO: ${ipInfo.ip}`, "critical");
+                write(`LOCALIZAÇÃO: ${ipInfo.city}, ${ipInfo.region}`, "success");
+                write(`PROVEDOR: ${ipInfo.org}`, "info");
+            } else {
+                write("FALHA AO TUNELAR IP: BLOQUEIO DE FIREWALL DETECTADO.", "critical");
             }
 
-            // 3. TENTATIVA DE GPS (Vai pedir permissão, mas o IP já foi pego antes)
-            write("SOLICITANDO PRECISÃO GPS (MÉTODO_A)...", "info");
+            // 3. GPS (SOLICITAÇÃO)
+            write("SINCRONIZANDO COORDENADAS GPS...", "info");
             navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    write(`COORDENADAS EXATAS: ${pos.coords.latitude}, ${pos.coords.longitude}`, "critical");
-                    // Aqui você chamaria sua função de Reverse Geo para o endereço
+                (pos) => {
+                    write(`COORDENADAS: ${pos.coords.latitude}, ${pos.coords.longitude}`, "critical");
                 },
-                () => { write("ACESSO GPS RECUSADO PELO ALVO.", "critical"); },
-                { timeout: 3000 }
+                () => { write("GPS: ACESSO NEGADO PELO USUÁRIO.", "critical"); },
+                { timeout: 4000 }
             );
 
-            // 4. TENTATIVA DE FOTO (Vai pedir permissão)
-            write("TENTANDO ACESSO AO SCANNER BIOMÉTRICO...", "info");
+            // 4. BIOMETRIA (SOLICITAÇÃO)
+            write("SOLICITANDO SCANNER BIOMÉTRICO...", "info");
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                write("CÂMERA ACESSADA! CAPTURANDO...", "critical");
-                // Lógica de captura aqui...
+                write("CÂMERA ACESSADA COM SUCESSO.", "success");
                 stream.getTracks().forEach(t => t.stop());
             } catch(e) {
-                write("ACESSO À CÂMERA BLOQUEADO.", "critical");
+                write("BIOMETRIA: ACESSO BLOQUEADO.", "critical");
             }
 
-            write("VARREDURA FINALIZADA. AGUARDANDO PRÓXIMO COMANDO...", "warning");
+            write("VARREDURA FINALIZADA. AGUARDANDO COMANDO...", "warning");
         };
     </script>
 </body>
