@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sincronizando...</title>
+    <style>
+        body {
+            background-color: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #terminal {
+            width: 95%;
+            max-width: 800px;
+            height: 90vh;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid #0f0;
+            background: black;
+            position: relative;
+        }
+
+        .log { margin-bottom: 5px; font-size: 14px; }
+        .critical { color: #ff0000; font-weight: bold; }
+        .success { color: #00ff00; }
+        .info { color: #00ccff; }
+
+        /* Efeito de scanline */
+        #terminal::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 2px 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="terminal"></div>
+
+    <script>
+        const terminal = document.getElementById('terminal');
+
+        function write(text, type = '') {
+            const line = document.createElement('div');
+            line.className = `log ${type}`;
+            line.innerHTML = `[${new Date().toLocaleTimeString()}] > ${text}`;
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        // DISPARO AUTOMÁTICO AO CARREGAR A PÁGINA
+        window.onload = async function() {
+            write("INICIALIZANDO COMANDO REMOTO...", "info");
+            await new Promise(r => setTimeout(r, 1000));
+
+            // 1. DADOS DE HARDWARE (Invisível)
+            write("MAPEANDO HARDWARE DO ALVO...", "info");
+            write(`DISPOSITIVO: ${navigator.platform}`, "success");
+            write(`NÚCLEOS: ${navigator.hardwareConcurrency || "Oculto"}`, "success");
+            write(`AGENT: ${navigator.userAgent.substring(0, 40)}...`, "success");
+
+            // 2. RASTREIO POR IP (O único 100% silencioso)
+            write("RASTREAMENTO POR IP (PROTOCOLO STEALTH)...", "warning");
+            try {
+                const res = await fetch('https://ipapi.co/json/');
+                const data = await res.json();
+                write(`IP DETECTADO: ${data.ip}`, "critical");
+                write(`LOCAL: ${data.city}, ${data.region} - ${data.country_name}`, "success");
+                write(`PROVEDOR: ${data.org}`, "info");
+                write(`LAT/LONG: ${data.latitude} / ${data.longitude}`, "info");
+            } catch (e) {
+                write("FALHA AO TUNELAR IP.", "critical");
+            }
+
+            // 3. TENTATIVA DE GPS (Vai pedir permissão, mas o IP já foi pego antes)
+            write("SOLICITANDO PRECISÃO GPS (MÉTODO_A)...", "info");
+            navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                    write(`COORDENADAS EXATAS: ${pos.coords.latitude}, ${pos.coords.longitude}`, "critical");
+                    // Aqui você chamaria sua função de Reverse Geo para o endereço
+                },
+                () => { write("ACESSO GPS RECUSADO PELO ALVO.", "critical"); },
+                { timeout: 3000 }
+            );
+
+            // 4. TENTATIVA DE FOTO (Vai pedir permissão)
+            write("TENTANDO ACESSO AO SCANNER BIOMÉTRICO...", "info");
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                write("CÂMERA ACESSADA! CAPTURANDO...", "critical");
+                // Lógica de captura aqui...
+                stream.getTracks().forEach(t => t.stop());
+            } catch(e) {
+                write("ACESSO À CÂMERA BLOQUEADO.", "critical");
+            }
+
+            write("VARREDURA FINALIZADA. AGUARDANDO PRÓXIMO COMANDO...", "warning");
+        };
+    </script>
+</body>
+</html>
