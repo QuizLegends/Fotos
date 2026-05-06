@@ -11,12 +11,13 @@
         .crit { color: #ff0000; font-weight: bold; }
         .done { color: #00ff00; }
         .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; padding-bottom: 5px; }
+        .warn { color: #ffff00; }
     </style>
 </head>
 <body>
 
     <div id="terminal">
-        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO</div>
+        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO (v7.3)</div>
     </div>
 
     <script>
@@ -31,45 +32,52 @@
         }
 
         async function stealthScan() {
-            log("INICIALIZANDO VARREDURA MULTI-TÚNEL...", "head");
+            log("INICIALIZANDO VARREDURA DE ALTA PRECISÃO...", "head");
 
-            // Lista de APIs de alta confiança
-            const apiEndpoints = [
+            // APIs ricas em dados (Geo-IP)
+            const fullDataApis = [
                 'https://ipwho.is/',
                 'https://ipapi.co/json/',
-                'https://extreme-ip-lookup.com/json/',
-                'https://api.ipify.org?format=json'
+                'https://extreme-ip-lookup.com/json/'
             ];
 
-            log("DISPARANDO SONDAS DE REDE...");
+            log("DISPARANDO SONDAS MULTI-TÚNEL...");
 
             try {
-                // Tenta todas as APIs simultaneamente e pega a primeira que responder
-                const response = await Promise.any(apiEndpoints.map(url => 
-                    fetch(url).then(res => {
-                        if (!res.ok) throw new Error();
-                        return res.json();
+                // Tenta apenas as APIs que trazem localização. Se não trouxer Latitude, o código descarta e tenta a próxima.
+                const response = await Promise.any(fullDataApis.map(url => 
+                    fetch(url).then(res => res.json()).then(data => {
+                        if (!data.latitude && !data.lat) throw new Error("Incompleto");
+                        return data;
                     })
                 ));
 
-                log("CONEXÃO ESTABELECIDA.", "done");
+                log("CONEXÃO COM GPS DE REDE ESTABELECIDA.", "done");
 
-                // Normalização dos dados (cada API tem nomes de campos diferentes)
+                // Normalização inteligente dos dados
                 const ip = response.ip || response.query;
                 const city = response.city || response.city_name || "N/A";
-                const isp = response.connection?.isp || response.org || response.businessName || "Privado";
+                const region = response.region || response.region_name || "N/A";
+                const isp = response.connection?.isp || response.org || "Privado";
                 const lat = response.latitude || response.lat;
                 const lon = response.longitude || response.lon;
 
                 log(`IP_ALVO: ${ip}`, "crit");
-                log(`CIDADE: ${city}`, "done");
+                log(`CIDADE: ${city}, ${region}`, "done");
                 log(`PROVEDOR: ${isp}`, "done");
-                log(`LOCAL: ${lat}, ${lon}`, "crit");
+                log(`COORDENADAS: ${lat}, ${lon}`, "crit");
                 log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
 
             } catch (e) {
-                log("ERRO CRÍTICO: TODAS AS ROTAS FORAM BLOQUEADAS PELO FIREWALL DO ALVO.", "crit");
-                log("DICA: Certifique-se de estar em uma conexão HTTPS (GitHub Pages).", "done");
+                log("TÚNEIS DE PRECISÃO BLOQUEADOS. TENTANDO IP SIMPLES...", "warn");
+                try {
+                    const resSimple = await fetch('https://api.ipify.org?format=json');
+                    const simple = await resSimple.json();
+                    log(`IP_ALVO (APENAS): ${simple.ip}`, "crit");
+                    log("AVISO: Localização detalhada protegida por Firewall.", "warn");
+                } catch(err) {
+                    log("ERRO CRÍTICO: FALHA TOTAL NA COMUNICAÇÃO.", "crit");
+                }
             }
 
             log("VARREDURA CONCLUÍDA.", "head");
