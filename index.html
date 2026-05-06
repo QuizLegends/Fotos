@@ -17,7 +17,7 @@
 <body>
 
     <div id="terminal">
-        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO (v7.4)</div>
+        <div class="head">SISTEMA DE MONITORAMENTO - GHOST_PROTOCOL ATIVO (v7.5)</div>
     </div>
 
     <script>
@@ -31,58 +31,46 @@
             term.scrollTop = term.scrollHeight;
         }
 
-        function displayData(ip, city, reg, isp, lat, lon) {
-            log(`IP_ALVO: ${ip}`, "crit");
-            log(`LOCAL: ${city}, ${reg}`, "done");
-            log(`PROVEDOR: ${isp}`, "done");
+        // FUNÇÃO DE RETORNO (O Firewall não bloqueia chamadas via script tag)
+        window.processData = function(d) {
+            log("SINAL DE REDE CAPTURADO COM SUCESSO.", "done");
+            
+            const lat = d.lat || d.latitude;
+            const lon = d.lon || d.longitude;
+
+            log(`IP_ALVO: ${d.query || d.ip}`, "crit");
+            log(`LOCAL: ${d.city}, ${d.regionName || d.region}`, "done");
+            log(`PROVEDOR: ${d.isp || d.org}`, "done");
             log(`COORDENADAS: ${lat}, ${lon}`, "crit");
             log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
-        }
-
-        async function stealthScan() {
-            log("INICIALIZANDO BYPASS DE FIREWALL...", "head");
-            log("ESTABELECENDO TÚNEIS DE ALTA DISPONIBILIDADE...");
-
-            try {
-                // Tentativa 1: IP-API (Alta precisão, campos técnicos)
-                const res = await fetch('https://demo.ip-api.com/json/?fields=61439');
-                const d = await res.json();
-
-                if (d.status === "fail") throw new Error();
-
-                log("CONEXÃO ESTABELECIDA VIA SENSOR_01.", "done");
-                displayData(d.query, d.city, d.regionName, d.isp, d.lat, d.lon);
-
-            } catch (e) {
-                log("TÚNEL 01 BLOQUEADO. RECALIBRANDO ROTA...", "warn");
-                
-                try {
-                    // Tentativa 2: IPAPI.co (Fallback)
-                    const res2 = await fetch('https://ipapi.co/json/');
-                    const d2 = await res2.json();
-                    
-                    if(d2.error) throw new Error();
-
-                    log("ROTA DE BACKUP ATIVA.", "done");
-                    displayData(d2.ip, d2.city, d2.region, d2.org, d2.latitude, d2.longitude);
-                } catch(err) {
-                    log("ERRO CRÍTICO: FIREWALL AGRESSIVO DETECTADO.", "crit");
-                    
-                    // Último recurso: Apenas o IP
-                    try {
-                        const res3 = await fetch('https://api.ipify.org?format=json');
-                        const d3 = await res3.json();
-                        log(`IP_ALVO (APENAS): ${d3.ip}`, "crit");
-                        log("LOCALIZAÇÃO RESTRITA PELO PROVEDOR.", "warn");
-                    } catch(f) {
-                        log("FALHA TOTAL NA VARREDURA.", "crit");
-                    }
-                }
-            }
             log("VARREDURA CONCLUÍDA.", "head");
+        };
+
+        async function ghostScan() {
+            log("INICIALIZANDO BYPASS GHOST_PROTOCOL...", "head");
+            log("INJETANDO SONDAS VIA SCRIPT_INJECTION...");
+
+            // Método JSONP: Bypassa 99% dos Firewalls de Navegador
+            const script = document.createElement('script');
+            
+            // Usamos a API com o parâmetro 'callback', que força a entrega dos dados
+            script.src = 'https://ip-api.com/json/?callback=processData';
+            
+            script.onerror = function() {
+                log("TÚNEL GHOST BLOQUEADO. TENTANDO ROTA DE EMERGÊNCIA...", "warn");
+                // Fallback para IP simples se o JSONP também falhar
+                fetch('https://api.ipify.org?format=json')
+                    .then(r => r.json())
+                    .then(data => {
+                        log(`IP_ALVO (APENAS): ${data.ip}`, "crit");
+                        log("AVISO: Localização detalhada inacessível.", "warn");
+                    });
+            };
+
+            document.body.appendChild(script);
         }
 
-        window.onload = stealthScan;
+        window.onload = ghostScan;
     </script>
 </body>
 </html>
