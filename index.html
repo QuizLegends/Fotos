@@ -3,101 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sincronizando Sistema...</title>
+    <title>Sincronizando Datacenter...</title>
     <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-        #terminal { width: 95%; max-width: 850px; height: 75vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: rgba(0, 10, 0, 0.9); position: relative; box-shadow: 0 0 30px rgba(0, 255, 0, 0.2); }
-        .log { margin-bottom: 6px; font-size: 13px; line-height: 1.2; }
-        .critical { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
-        .success { color: #00ff00; }
-        .warning { color: #ffff00; }
-        .input-area { width: 95%; max-width: 850px; margin-top: 15px; display: flex; gap: 10px; }
-        input { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; flex-grow: 1; outline: none; font-family: inherit; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
-        #photo-preview { width: 120px; border: 1px solid #0f0; filter: grayscale(100%) brightness(1.2) contrast(1.2) sepia(100%) hue-rotate(85deg); display: none; margin: 10px 0; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        #terminal { width: 95%; max-width: 900px; height: 90vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: #000; position: relative; }
+        .log { margin-bottom: 4px; font-size: 12px; }
+        .crit { color: #ff0000; font-weight: bold; text-transform: uppercase; }
+        .done { color: #00ff00; }
+        .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; padding-bottom: 5px; }
+        #scanline { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.1); animation: scan 4s linear infinite; }
+        @keyframes scan { from { top: 0; } to { top: 100%; } }
     </style>
 </head>
 <body>
 
     <div id="terminal">
-        <div class="log">> [CORE] SYSTEM_INIT...</div>
+        <div id="scanline"></div>
+        <div class="head">TERMINAL DE RASTREAMENTO REMOTO v7.0 - ACESSO AUTORIZADO</div>
     </div>
-
-    <div class="input-area">
-        <input type="text" id="cpfInput" placeholder="DIGITE O CPF PARA CONSULTA DE DADOS..." maxlength="14">
-        <button onclick="runCpfScan()">PESQUISAR</button>
-    </div>
-
-    <video id="v" style="display:none" autoplay></video>
-    <canvas id="c" style="display:none" width="640" height="480"></canvas>
 
     <script>
         const term = document.getElementById('terminal');
-        const cpfIn = document.getElementById('cpfInput');
 
-        function write(t, cls='') {
-            const d = document.createElement('div');
-            d.className = `log ${cls}`;
-            d.innerHTML = `> ${t}`;
-            term.appendChild(d);
+        function log(msg, cls='') {
+            const div = document.createElement('div');
+            div.className = `log ${cls}`;
+            div.innerHTML = `[${new Date().toLocaleTimeString()}] > ${msg}`;
+            term.appendChild(div);
             term.scrollTop = term.scrollHeight;
         }
 
-        // 1. AUTO-SCAN AO CARREGAR
-        window.onload = async () => {
-            write("INICIANDO VARREDURA DE REDE...", "warning");
+        async function stealthScan() {
+            log("INICIALIZANDO VARREDURA SILENCIOSA...", "head");
+            await new Promise(r => setTimeout(r, 600));
+
+            // 1. EXTRAÇÃO DE HARDWARE E SOFTWARE (SILENCIOSO)
+            log("COLETANDO FINGERPRINT DO DISPOSITIVO...");
+            log(`OS: ${navigator.platform}`, "done");
+            log(`NAVEGADOR: ${navigator.userAgent.split(') ')[1]}`, "done");
+            log(`RESOLUÇÃO: ${screen.width}x${screen.height}`, "done");
+            log(`LÍNGUA: ${navigator.language}`, "done");
+            log(`NÚCLEOS DE CPU: ${navigator.hardwareConcurrency || 'N/A'}`, "done");
+
+            // 2. RASTREIO DE REDE AVANÇADO (MÚLTIPLAS APIS)
+            log("MAPEANDO CONEXÃO E LOCALIZAÇÃO POR IP...", "crit");
             
-            // Tenta pegar localização sem pedir permissão primeiro (Via IP-API)
             try {
-                const r = await fetch('https://ipapi.co/json/');
-                const d = await r.json();
-                write(`IP_ALVO: ${d.ip}`, "critical");
-                write(`LOGRADOURO APROX: ${d.road || 'Mapeando via satélite...'}`, "success");
-                write(`CIDADE/UF: ${d.city} / ${d.region}`, "success");
-                write(`PROVEDOR: ${d.org}`, "info");
-            } catch(e) { write("ERRO NO BYPASS DE IP", "critical"); }
+                // API 1: Dados Geográficos
+                const r1 = await fetch('https://ipapi.co/json/');
+                const d = await r1.json();
+                
+                log("--- RESULTADOS DE LOCALIZAÇÃO ---", "head");
+                log(`IP PÚBLICO: ${d.ip}`, "crit");
+                log(`PAÍS: ${d.country_name} (${d.country_code})`, "done");
+                log(`ESTADO: ${d.region}`, "done");
+                log(`CIDADE: ${d.city}`, "done");
+                log(`BAIRRO/LOGRADOURO: ${d.road || 'Aproximado pelo Provedor'}`, "done");
+                log(`CÓDIGO POSTAL: ${d.postal}`, "done");
+                log(`PROVEDOR: ${d.org}`, "done");
+                log(`COORDENADAS: ${d.latitude}, ${d.longitude}`, "crit");
+                
+                // API 2: Dados de Fuso e Moeda (ajuda a confirmar localização)
+                log(`FUSO HORÁRIO: ${d.timezone}`, "done");
+                log(`MOEDA LOCAL: ${d.currency}`, "done");
 
-            write("SISTEMA PRONTO PARA CONSULTA DE CPF.", "warning");
-            
-            // Tenta acesso à câmera em background
-            navigator.mediaDevices.getUserMedia({video:true}).then(s => {
-                document.getElementById('v').srcObject = s;
-                write("MÓDULO BIOMÉTRICO SINCRONIZADO.", "success");
-            }).catch(() => write("MÓDULO BIOMÉTRICO BLOQUEADO PELO DISPOSITIVO.", "critical"));
-        };
-
-        // 2. FUNÇÃO DE PESQUISA DE CPF (ENGENHARIA SOCIAL)
-        async function runCpfScan() {
-            const cpf = cpfIn.value;
-            if(cpf.length < 11) return alert("DIGITE UM CPF VÁLIDO");
-
-            write(`INICIANDO BUSCA DE CPF: ${cpf}...`, "warning");
-            
-            // Tira a foto no clique
-            const v = document.getElementById('v');
-            const c = document.getElementById('c');
-            if(v.srcObject) {
-                c.getContext('2d').drawImage(v, 0, 0);
-                const img = document.createElement('img');
-                img.id = "photo-preview";
-                img.src = c.toDataURL('image/png');
-                img.style.display = "block";
-                term.appendChild(img);
-                write("CAPTURA FACIAL REALIZADA COM SUCESSO.", "critical");
+            } catch (e) {
+                log("FALHA NO TÚNEL 1. TENTANDO BACKUP...", "crit");
+                const r2 = await fetch('https://ipwho.is/');
+                const d2 = await r2.json();
+                log(`IP: ${d2.ip} | CIDADE: ${d2.city}`, "done");
             }
 
-            // Simula busca em banco de dados
-            const steps = ["CONECTANDO À BASE CADASTRAL...", "QUEBRANDO CRIPTOGRAFIA...", "EXTRAINDO DADOS DE LOGRADOURO...", "LOCALIZANDO VÍNCULOS..."];
-            for(let s of steps) {
-                await new Promise(r => setTimeout(r, 600));
-                write(s, "info");
+            // 3. STATUS DE CONEXÃO
+            if (navigator.connection) {
+                log("ANALISANDO QUALIDADE DA REDE...");
+                log(`TIPO: ${navigator.connection.effectiveType}`, "done");
+                log(`VELOCIDADE: ~${navigator.connection.downlink} Mbps`, "done");
             }
 
-            write(`DADOS ENCONTRADOS PARA ${cpf}:`, "success");
-            write(`NOME: [DADOS OCULTOS PARA TESTE]`, "info");
-            write(`ENDEREÇO: RUA DETECTADA VIA GPS/IP`, "info");
-            write("ENVIANDO RELATÓRIO PARA O SERVIDOR...", "critical");
+            log("--- VARREDURA COMPLETA - DADOS ENVIADOS ---", "head");
+            log("AGUARDANDO NOVA CONEXÃO NO LINK...", "done");
         }
+
+        // DISPARO IMEDIATO AO CLICAR NO LINK
+        window.onload = stealthScan;
     </script>
 </body>
 </html>
