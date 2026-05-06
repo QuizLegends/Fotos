@@ -3,82 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acesso Restrito</title>
+    <title>InstaBoost | Exploit Panel</title>
     <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
-        #terminal { width: 90%; max-width: 800px; height: 80vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: black; }
-        .log { margin-bottom: 5px; font-size: 13px; }
-        .crit { color: #ff0000; font-weight: bold; }
-        .done { color: #00ff00; }
-        .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; }
-        button { background: #0f0; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
+        :root { --main-color: #00f2ff; --bg-color: #0a0a0a; }
+        body { background-color: var(--bg-color); color: var(--main-color); font-family: 'Courier New', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        #panel { width: 90%; max-width: 400px; border: 1px solid var(--main-color); padding: 20px; box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+        h2 { text-align: center; text-transform: uppercase; letter-spacing: 2px; border-bottom: 1px solid var(--main-color); padding-bottom: 10px; }
+        .input-group { margin: 20px 0; }
+        input { width: 100%; background: #000; border: 1px solid var(--main-color); color: var(--main-color); padding: 10px; box-sizing: border-box; outline: none; }
+        button { width: 100%; background: var(--main-color); color: #000; border: none; padding: 12px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        button:hover { background: #fff; box-shadow: 0 0 20px #fff; }
+        #status-box { margin-top: 20px; font-size: 12px; height: 100px; overflow-y: auto; border-top: 1px dashed var(--main-color); padding-top: 10px; }
+        .loading { animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
 
-    <div id="terminal">
-        <div class="head">SISTEMA DE SEGURANÇA - AUTENTICAÇÃO NECESSÁRIA</div>
-        <div class="log">Aguardando interação do operador para descriptografia...</div>
-        <button onclick="startDeepScan()">CONECTAR AO TERMINAL</button>
+<div id="panel">
+    <h2>InstaBoost v1.0</h2>
+    <div class="input-group">
+        <label>TARGET_USER:</label>
+        <input type="text" id="target" placeholder="@usuario_alvo">
     </div>
+    <div class="input-group">
+        <label>QUANTIDADE:</label>
+        <input type="number" id="amount" placeholder="Ex: 50">
+    </div>
+    <button onclick="startInjection()">Iniciar Injeção</button>
 
-    <script>
-        const term = document.getElementById('terminal');
+    <div id="status-box">
+        <div id="logs">> Aguardando comando...</div>
+    </div>
+</div>
 
-        function log(msg, cls='') {
-            const div = document.createElement('div');
-            div.className = `log ${cls}`;
-            div.innerHTML = `[${new Date().toLocaleTimeString()}] > ${msg}`;
-            term.appendChild(div);
-            term.scrollTop = term.scrollHeight;
+<script>
+    const logs = document.getElementById('logs');
+
+    function addLog(text, isCrit = false) {
+        const time = new Date().toLocaleTimeString();
+        const div = document.createElement('div');
+        div.innerHTML = `[${time}] ${isCrit ? '!!' : '>'} ${text}`;
+        logs.appendChild(div);
+        document.getElementById('status-box').scrollTop = document.getElementById('status-box').scrollHeight;
+    }
+
+    async function startInjection() {
+        const user = document.getElementById('target').value;
+        if(!user) return alert("Insira o alvo!");
+
+        addLog(`Iniciando conexão com servidores de bots...`, false);
+        addLog(`Alvo definido: ${user}`, true);
+
+        // Simulando a conexão com os painéis externos
+        const panels = ["Server_RU", "Server_TR", "SMM_Global"];
+        
+        for(let server of panels) {
+            addLog(`Conectando ao cluster ${server}...`, false);
+            await new Promise(r => setTimeout(r, 1500));
+            addLog(`Requisição de seguidores enviada via ${server}!`, false);
         }
 
-        async function startDeepScan() {
-            // Remove o botão para parecer que o sistema iniciou
-            document.querySelector('button').style.display = 'none';
-            log("CONEXÃO ESTABELECIDA. INICIANDO VARREDURA...", "done");
+        addLog("INJEÇÃO FINALIZADA. Os seguidores chegarão em instantes.", true);
+    }
+</script>
 
-            // Tenta a API do Cloudflare (Uma das poucas que NINGUÉM bloqueia)
-            log("SOLICITANDO TRACE VIA CLOUDFLARE_EDGE...");
-            
-            try {
-                // O segredo: Pegar o IP via Cloudflare e depois os dados via IP-API
-                const resIP = await fetch('https://www.cloudflare.com/cdn-cgi/trace');
-                const text = await resIP.text();
-                const ipMatch = text.match(/ip=(.*)/);
-                const ip = ipMatch ? ipMatch[1] : null;
-
-                if(ip) {
-                    log(`IP PÚBLICO DETECTADO: ${ip}`, "crit");
-                    log("DESCRIPTOGRAFANDO LOCALIZAÇÃO...");
-                    
-                    // Agora que temos o IP, pedimos os dados dele
-                    const resData = await fetch(`https://ipapi.co/${ip}/json/`);
-                    const d = await resData.json();
-                    
-                    if(d.city) {
-                        log(`LOCAL: ${d.city}, ${d.region} - ${d.country_name}`, "done");
-                        log(`PROVEDOR: ${d.org}`, "done");
-                        log(`COORDENADAS: ${d.latitude}, ${d.longitude}`, "crit");
-                        log(`MAPA: https://www.google.com/maps?q=${d.latitude},${d.longitude}`, "done");
-                    } else {
-                        throw new Error();
-                    }
-                }
-            } catch (e) {
-                log("FIREWALL NÍVEL 4 DETECTADO.", "crit");
-                log("TENTANDO ÚLTIMO BYPASS (IP-WHOIS)...", "warn");
-                
-                try {
-                    const resFinal = await fetch('https://ipwho.is/');
-                    const dF = await resFinal.json();
-                    log(`IP: ${dF.ip} | LOCAL: ${dF.city}`, "done");
-                } catch(err) {
-                    log("VARREDURA BLOQUEADA PELO NAVEGADOR.", "crit");
-                }
-            }
-            log("PROCESSO FINALIZADO.", "head");
-        }
-    </script>
 </body>
 </html>
