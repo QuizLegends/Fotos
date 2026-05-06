@@ -8,18 +8,15 @@
         body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
         #terminal { width: 95%; max-width: 900px; height: 90vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: #000; position: relative; }
         .log { margin-bottom: 4px; font-size: 12px; }
-        .crit { color: #ff0000; font-weight: bold; text-transform: uppercase; }
+        .crit { color: #ff0000; font-weight: bold; }
         .done { color: #00ff00; }
         .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; padding-bottom: 5px; }
-        #scanline { position: absolute; top: 0; left: 0; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.1); animation: scan 4s linear infinite; }
-        @keyframes scan { from { top: 0; } to { top: 100%; } }
     </style>
 </head>
 <body>
 
     <div id="terminal">
-        <div id="scanline"></div>
-        <div class="head">SISTEMA DE MONITORAMENTO DE REDE - NODE_STATUS: OK</div>
+        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO</div>
     </div>
 
     <script>
@@ -34,64 +31,48 @@
         }
 
         async function stealthScan() {
-            log("INICIALIZANDO VARREDURA SILENCIOSA...", "head");
-            
-            // 1. DADOS TÉCNICOS (Sempre funcionam)
-            log(`PLATAFORMA: ${navigator.platform}`, "done");
-            log(`NÚCLEOS: ${navigator.hardwareConcurrency || 'N/A'}`, "done");
-            log(`AGENT: ${navigator.userAgent.split(' ')[0]}`, "done");
+            log("INICIALIZANDO VARREDURA MULTI-TÚNEL...", "head");
 
-            // 2. RASTREIO POR IP COM FALLBACK (O coração do sistema)
-            const apis = [
-                { url: 'https://ipwho.is/', type: 'ipwho' },
-                { url: 'https://ipapi.co/json/', type: 'ipapi' },
-                { url: 'https://api.ipify.org?format=json', type: 'ipify' }
+            // Lista de APIs de alta confiança
+            const apiEndpoints = [
+                'https://ipwho.is/',
+                'https://ipapi.co/json/',
+                'https://extreme-ip-lookup.com/json/',
+                'https://api.ipify.org?format=json'
             ];
 
-            let dataFound = false;
+            log("DISPARANDO SONDAS DE REDE...");
 
-            for (let provider of apis) {
-                if (dataFound) break;
+            try {
+                // Tenta todas as APIs simultaneamente e pega a primeira que responder
+                const response = await Promise.any(apiEndpoints.map(url => 
+                    fetch(url).then(res => {
+                        if (!res.ok) throw new Error();
+                        return res.json();
+                    })
+                ));
 
-                log(`TENTANDO CONEXÃO COM TÚNEL: ${provider.url.split('/')[2]}...`);
-                
-                try {
-                    const res = await fetch(provider.url);
-                    const d = await res.json();
+                log("CONEXÃO ESTABELECIDA.", "done");
 
-                    if (provider.type === 'ipwho' && d.success) {
-                        log("TÚNEL ESTABELECIDO COM SUCESSO.", "done");
-                        displayData(d.ip, d.city, d.region, d.country, d.connection.isp, d.latitude, d.longitude);
-                        dataFound = true;
-                    } 
-                    else if (provider.type === 'ipapi' && d.ip) {
-                        log("TÚNEL DE BACKUP ESTABELECIDO.", "done");
-                        displayData(d.ip, d.city, d.region, d.country_name, d.org, d.latitude, d.longitude);
-                        dataFound = true;
-                    }
-                    else if (provider.type === 'ipify' && d.ip) {
-                        log("TÚNEL DE EMERGÊNCIA (APENAS IP) ESTABELECIDO.", "warning");
-                        log(`IP PÚBLICO: ${d.ip}`, "crit");
-                        dataFound = true;
-                    }
-                } catch (e) {
-                    log(`FALHA NO TÚNEL ${provider.type.toUpperCase()}. RECALIBRANDO...`, "crit");
-                }
+                // Normalização dos dados (cada API tem nomes de campos diferentes)
+                const ip = response.ip || response.query;
+                const city = response.city || response.city_name || "N/A";
+                const isp = response.connection?.isp || response.org || response.businessName || "Privado";
+                const lat = response.latitude || response.lat;
+                const lon = response.longitude || response.lon;
+
+                log(`IP_ALVO: ${ip}`, "crit");
+                log(`CIDADE: ${city}`, "done");
+                log(`PROVEDOR: ${isp}`, "done");
+                log(`LOCAL: ${lat}, ${lon}`, "crit");
+                log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
+
+            } catch (e) {
+                log("ERRO CRÍTICO: TODAS AS ROTAS FORAM BLOQUEADAS PELO FIREWALL DO ALVO.", "crit");
+                log("DICA: Certifique-se de estar em uma conexão HTTPS (GitHub Pages).", "done");
             }
 
-            if (!dataFound) {
-                log("ERRO CRÍTICO: TODAS AS TENTATIVAS DE RASTREIO FORAM BLOQUEADAS PELO FIREWALL.", "crit");
-            }
-
-            log("--- VARREDURA FINALIZADA ---", "head");
-        }
-
-        function displayData(ip, city, reg, country, isp, lat, lon) {
-            log(`IP DETECTADO: ${ip}`, "crit");
-            log(`LOCALIZAÇÃO: ${city}, ${reg} - ${country}`, "done");
-            log(`PROVEDOR: ${isp}`, "done");
-            log(`COORDENADAS: ${lat}, ${lon}`, "crit");
-            log(`MAPA: https://www.google.com/maps?q=${lat},${lon}`, "done");
+            log("VARREDURA CONCLUÍDA.", "head");
         }
 
         window.onload = stealthScan;
