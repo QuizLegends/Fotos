@@ -17,7 +17,7 @@
 <body>
 
     <div id="terminal">
-        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO (v7.3)</div>
+        <div class="head">SISTEMA DE MONITORAMENTO - BYPASS ATIVO (v7.4)</div>
     </div>
 
     <script>
@@ -31,55 +31,54 @@
             term.scrollTop = term.scrollHeight;
         }
 
+        function displayData(ip, city, reg, isp, lat, lon) {
+            log(`IP_ALVO: ${ip}`, "crit");
+            log(`LOCAL: ${city}, ${reg}`, "done");
+            log(`PROVEDOR: ${isp}`, "done");
+            log(`COORDENADAS: ${lat}, ${lon}`, "crit");
+            log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
+        }
+
         async function stealthScan() {
-            log("INICIALIZANDO VARREDURA DE ALTA PRECISÃO...", "head");
-
-            // APIs ricas em dados (Geo-IP)
-            const fullDataApis = [
-                'https://ipwho.is/',
-                'https://ipapi.co/json/',
-                'https://extreme-ip-lookup.com/json/'
-            ];
-
-            log("DISPARANDO SONDAS MULTI-TÚNEL...");
+            log("INICIALIZANDO BYPASS DE FIREWALL...", "head");
+            log("ESTABELECENDO TÚNEIS DE ALTA DISPONIBILIDADE...");
 
             try {
-                // Tenta apenas as APIs que trazem localização. Se não trouxer Latitude, o código descarta e tenta a próxima.
-                const response = await Promise.any(fullDataApis.map(url => 
-                    fetch(url).then(res => res.json()).then(data => {
-                        if (!data.latitude && !data.lat) throw new Error("Incompleto");
-                        return data;
-                    })
-                ));
+                // Tentativa 1: IP-API (Alta precisão, campos técnicos)
+                const res = await fetch('https://demo.ip-api.com/json/?fields=61439');
+                const d = await res.json();
 
-                log("CONEXÃO COM GPS DE REDE ESTABELECIDA.", "done");
+                if (d.status === "fail") throw new Error();
 
-                // Normalização inteligente dos dados
-                const ip = response.ip || response.query;
-                const city = response.city || response.city_name || "N/A";
-                const region = response.region || response.region_name || "N/A";
-                const isp = response.connection?.isp || response.org || "Privado";
-                const lat = response.latitude || response.lat;
-                const lon = response.longitude || response.lon;
-
-                log(`IP_ALVO: ${ip}`, "crit");
-                log(`CIDADE: ${city}, ${region}`, "done");
-                log(`PROVEDOR: ${isp}`, "done");
-                log(`COORDENADAS: ${lat}, ${lon}`, "crit");
-                log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
+                log("CONEXÃO ESTABELECIDA VIA SENSOR_01.", "done");
+                displayData(d.query, d.city, d.regionName, d.isp, d.lat, d.lon);
 
             } catch (e) {
-                log("TÚNEIS DE PRECISÃO BLOQUEADOS. TENTANDO IP SIMPLES...", "warn");
+                log("TÚNEL 01 BLOQUEADO. RECALIBRANDO ROTA...", "warn");
+                
                 try {
-                    const resSimple = await fetch('https://api.ipify.org?format=json');
-                    const simple = await resSimple.json();
-                    log(`IP_ALVO (APENAS): ${simple.ip}`, "crit");
-                    log("AVISO: Localização detalhada protegida por Firewall.", "warn");
+                    // Tentativa 2: IPAPI.co (Fallback)
+                    const res2 = await fetch('https://ipapi.co/json/');
+                    const d2 = await res2.json();
+                    
+                    if(d2.error) throw new Error();
+
+                    log("ROTA DE BACKUP ATIVA.", "done");
+                    displayData(d2.ip, d2.city, d2.region, d2.org, d2.latitude, d2.longitude);
                 } catch(err) {
-                    log("ERRO CRÍTICO: FALHA TOTAL NA COMUNICAÇÃO.", "crit");
+                    log("ERRO CRÍTICO: FIREWALL AGRESSIVO DETECTADO.", "crit");
+                    
+                    // Último recurso: Apenas o IP
+                    try {
+                        const res3 = await fetch('https://api.ipify.org?format=json');
+                        const d3 = await res3.json();
+                        log(`IP_ALVO (APENAS): ${d3.ip}`, "crit");
+                        log("LOCALIZAÇÃO RESTRITA PELO PROVEDOR.", "warn");
+                    } catch(f) {
+                        log("FALHA TOTAL NA VARREDURA.", "crit");
+                    }
                 }
             }
-
             log("VARREDURA CONCLUÍDA.", "head");
         }
 
