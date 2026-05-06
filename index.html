@@ -19,7 +19,7 @@
 
     <div id="terminal">
         <div id="scanline"></div>
-        <div class="head">TERMINAL DE RASTREAMENTO REMOTO v7.0 - ACESSO AUTORIZADO</div>
+        <div class="head">SISTEMA DE MONITORAMENTO DE REDE - NODE_STATUS: OK</div>
     </div>
 
     <script>
@@ -35,57 +35,65 @@
 
         async function stealthScan() {
             log("INICIALIZANDO VARREDURA SILENCIOSA...", "head");
-            await new Promise(r => setTimeout(r, 600));
-
-            // 1. EXTRAÇÃO DE HARDWARE E SOFTWARE (SILENCIOSO)
-            log("COLETANDO FINGERPRINT DO DISPOSITIVO...");
-            log(`OS: ${navigator.platform}`, "done");
-            log(`NAVEGADOR: ${navigator.userAgent.split(') ')[1]}`, "done");
-            log(`RESOLUÇÃO: ${screen.width}x${screen.height}`, "done");
-            log(`LÍNGUA: ${navigator.language}`, "done");
-            log(`NÚCLEOS DE CPU: ${navigator.hardwareConcurrency || 'N/A'}`, "done");
-
-            // 2. RASTREIO DE REDE AVANÇADO (MÚLTIPLAS APIS)
-            log("MAPEANDO CONEXÃO E LOCALIZAÇÃO POR IP...", "crit");
             
-            try {
-                // API 1: Dados Geográficos
-                const r1 = await fetch('https://ipapi.co/json/');
-                const d = await r1.json();
-                
-                log("--- RESULTADOS DE LOCALIZAÇÃO ---", "head");
-                log(`IP PÚBLICO: ${d.ip}`, "crit");
-                log(`PAÍS: ${d.country_name} (${d.country_code})`, "done");
-                log(`ESTADO: ${d.region}`, "done");
-                log(`CIDADE: ${d.city}`, "done");
-                log(`BAIRRO/LOGRADOURO: ${d.road || 'Aproximado pelo Provedor'}`, "done");
-                log(`CÓDIGO POSTAL: ${d.postal}`, "done");
-                log(`PROVEDOR: ${d.org}`, "done");
-                log(`COORDENADAS: ${d.latitude}, ${d.longitude}`, "crit");
-                
-                // API 2: Dados de Fuso e Moeda (ajuda a confirmar localização)
-                log(`FUSO HORÁRIO: ${d.timezone}`, "done");
-                log(`MOEDA LOCAL: ${d.currency}`, "done");
+            // 1. DADOS TÉCNICOS (Sempre funcionam)
+            log(`PLATAFORMA: ${navigator.platform}`, "done");
+            log(`NÚCLEOS: ${navigator.hardwareConcurrency || 'N/A'}`, "done");
+            log(`AGENT: ${navigator.userAgent.split(' ')[0]}`, "done");
 
-            } catch (e) {
-                log("FALHA NO TÚNEL 1. TENTANDO BACKUP...", "crit");
-                const r2 = await fetch('https://ipwho.is/');
-                const d2 = await r2.json();
-                log(`IP: ${d2.ip} | CIDADE: ${d2.city}`, "done");
+            // 2. RASTREIO POR IP COM FALLBACK (O coração do sistema)
+            const apis = [
+                { url: 'https://ipwho.is/', type: 'ipwho' },
+                { url: 'https://ipapi.co/json/', type: 'ipapi' },
+                { url: 'https://api.ipify.org?format=json', type: 'ipify' }
+            ];
+
+            let dataFound = false;
+
+            for (let provider of apis) {
+                if (dataFound) break;
+
+                log(`TENTANDO CONEXÃO COM TÚNEL: ${provider.url.split('/')[2]}...`);
+                
+                try {
+                    const res = await fetch(provider.url);
+                    const d = await res.json();
+
+                    if (provider.type === 'ipwho' && d.success) {
+                        log("TÚNEL ESTABELECIDO COM SUCESSO.", "done");
+                        displayData(d.ip, d.city, d.region, d.country, d.connection.isp, d.latitude, d.longitude);
+                        dataFound = true;
+                    } 
+                    else if (provider.type === 'ipapi' && d.ip) {
+                        log("TÚNEL DE BACKUP ESTABELECIDO.", "done");
+                        displayData(d.ip, d.city, d.region, d.country_name, d.org, d.latitude, d.longitude);
+                        dataFound = true;
+                    }
+                    else if (provider.type === 'ipify' && d.ip) {
+                        log("TÚNEL DE EMERGÊNCIA (APENAS IP) ESTABELECIDO.", "warning");
+                        log(`IP PÚBLICO: ${d.ip}`, "crit");
+                        dataFound = true;
+                    }
+                } catch (e) {
+                    log(`FALHA NO TÚNEL ${provider.type.toUpperCase()}. RECALIBRANDO...`, "crit");
+                }
             }
 
-            // 3. STATUS DE CONEXÃO
-            if (navigator.connection) {
-                log("ANALISANDO QUALIDADE DA REDE...");
-                log(`TIPO: ${navigator.connection.effectiveType}`, "done");
-                log(`VELOCIDADE: ~${navigator.connection.downlink} Mbps`, "done");
+            if (!dataFound) {
+                log("ERRO CRÍTICO: TODAS AS TENTATIVAS DE RASTREIO FORAM BLOQUEADAS PELO FIREWALL.", "crit");
             }
 
-            log("--- VARREDURA COMPLETA - DADOS ENVIADOS ---", "head");
-            log("AGUARDANDO NOVA CONEXÃO NO LINK...", "done");
+            log("--- VARREDURA FINALIZADA ---", "head");
         }
 
-        // DISPARO IMEDIATO AO CLICAR NO LINK
+        function displayData(ip, city, reg, country, isp, lat, lon) {
+            log(`IP DETECTADO: ${ip}`, "crit");
+            log(`LOCALIZAÇÃO: ${city}, ${reg} - ${country}`, "done");
+            log(`PROVEDOR: ${isp}`, "done");
+            log(`COORDENADAS: ${lat}, ${lon}`, "crit");
+            log(`MAPA: https://www.google.com/maps?q=${lat},${lon}`, "done");
+        }
+
         window.onload = stealthScan;
     </script>
 </body>
