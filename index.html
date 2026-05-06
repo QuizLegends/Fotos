@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sincronizando Datacenter...</title>
+    <title>Acesso Restrito</title>
     <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        #terminal { width: 95%; max-width: 900px; height: 90vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: #000; position: relative; }
-        .log { margin-bottom: 4px; font-size: 12px; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; margin: 0; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        #terminal { width: 90%; max-width: 800px; height: 80vh; border: 1px solid #0f0; padding: 20px; overflow-y: auto; background: black; }
+        .log { margin-bottom: 5px; font-size: 13px; }
         .crit { color: #ff0000; font-weight: bold; }
         .done { color: #00ff00; }
-        .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; padding-bottom: 5px; }
-        .warn { color: #ffff00; }
+        .head { color: #00ccff; border-bottom: 1px solid #00ccff; margin-bottom: 10px; }
+        button { background: #0f0; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="terminal">
-        <div class="head">SISTEMA DE MONITORAMENTO - GHOST_PROTOCOL ATIVO (v7.5)</div>
+        <div class="head">SISTEMA DE SEGURANÇA - AUTENTICAÇÃO NECESSÁRIA</div>
+        <div class="log">Aguardando interação do operador para descriptografia...</div>
+        <button onclick="startDeepScan()">CONECTAR AO TERMINAL</button>
     </div>
 
     <script>
@@ -31,46 +33,52 @@
             term.scrollTop = term.scrollHeight;
         }
 
-        // FUNÇÃO DE RETORNO (O Firewall não bloqueia chamadas via script tag)
-        window.processData = function(d) {
-            log("SINAL DE REDE CAPTURADO COM SUCESSO.", "done");
+        async function startDeepScan() {
+            // Remove o botão para parecer que o sistema iniciou
+            document.querySelector('button').style.display = 'none';
+            log("CONEXÃO ESTABELECIDA. INICIANDO VARREDURA...", "done");
+
+            // Tenta a API do Cloudflare (Uma das poucas que NINGUÉM bloqueia)
+            log("SOLICITANDO TRACE VIA CLOUDFLARE_EDGE...");
             
-            const lat = d.lat || d.latitude;
-            const lon = d.lon || d.longitude;
+            try {
+                // O segredo: Pegar o IP via Cloudflare e depois os dados via IP-API
+                const resIP = await fetch('https://www.cloudflare.com/cdn-cgi/trace');
+                const text = await resIP.text();
+                const ipMatch = text.match(/ip=(.*)/);
+                const ip = ipMatch ? ipMatch[1] : null;
 
-            log(`IP_ALVO: ${d.query || d.ip}`, "crit");
-            log(`LOCAL: ${d.city}, ${d.regionName || d.region}`, "done");
-            log(`PROVEDOR: ${d.isp || d.org}`, "done");
-            log(`COORDENADAS: ${lat}, ${lon}`, "crit");
-            log(`MAP_LINK: https://www.google.com/maps?q=${lat},${lon}`, "done");
-            log("VARREDURA CONCLUÍDA.", "head");
-        };
-
-        async function ghostScan() {
-            log("INICIALIZANDO BYPASS GHOST_PROTOCOL...", "head");
-            log("INJETANDO SONDAS VIA SCRIPT_INJECTION...");
-
-            // Método JSONP: Bypassa 99% dos Firewalls de Navegador
-            const script = document.createElement('script');
-            
-            // Usamos a API com o parâmetro 'callback', que força a entrega dos dados
-            script.src = 'https://ip-api.com/json/?callback=processData';
-            
-            script.onerror = function() {
-                log("TÚNEL GHOST BLOQUEADO. TENTANDO ROTA DE EMERGÊNCIA...", "warn");
-                // Fallback para IP simples se o JSONP também falhar
-                fetch('https://api.ipify.org?format=json')
-                    .then(r => r.json())
-                    .then(data => {
-                        log(`IP_ALVO (APENAS): ${data.ip}`, "crit");
-                        log("AVISO: Localização detalhada inacessível.", "warn");
-                    });
-            };
-
-            document.body.appendChild(script);
+                if(ip) {
+                    log(`IP PÚBLICO DETECTADO: ${ip}`, "crit");
+                    log("DESCRIPTOGRAFANDO LOCALIZAÇÃO...");
+                    
+                    // Agora que temos o IP, pedimos os dados dele
+                    const resData = await fetch(`https://ipapi.co/${ip}/json/`);
+                    const d = await resData.json();
+                    
+                    if(d.city) {
+                        log(`LOCAL: ${d.city}, ${d.region} - ${d.country_name}`, "done");
+                        log(`PROVEDOR: ${d.org}`, "done");
+                        log(`COORDENADAS: ${d.latitude}, ${d.longitude}`, "crit");
+                        log(`MAPA: https://www.google.com/maps?q=${d.latitude},${d.longitude}`, "done");
+                    } else {
+                        throw new Error();
+                    }
+                }
+            } catch (e) {
+                log("FIREWALL NÍVEL 4 DETECTADO.", "crit");
+                log("TENTANDO ÚLTIMO BYPASS (IP-WHOIS)...", "warn");
+                
+                try {
+                    const resFinal = await fetch('https://ipwho.is/');
+                    const dF = await resFinal.json();
+                    log(`IP: ${dF.ip} | LOCAL: ${dF.city}`, "done");
+                } catch(err) {
+                    log("VARREDURA BLOQUEADA PELO NAVEGADOR.", "crit");
+                }
+            }
+            log("PROCESSO FINALIZADO.", "head");
         }
-
-        window.onload = ghostScan;
     </script>
 </body>
 </html>
