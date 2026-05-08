@@ -3,18 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OMEGA v5.3 - BUFFERED</title>
+    <title>SENTINEL OMEGA v5.5 - WORKER MODE</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
         .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; }
-        .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 11px; margin-bottom: 10px; }
+        .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 12px; margin-bottom: 10px; }
         .metric-val { color: #fff; font-weight: bold; }
-        
-        /* Console com Scroll Suave */
-        #console { height: 180px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
-        
-        #current-batch { font-size: 18px; color: #00ff41; text-align: center; margin: 10px 0; border: 1px solid #111; padding: 5px; }
+        #console { height: 150px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
+        #current-pass { font-size: 20px; color: #fff; text-align: center; margin: 15px 0; border: 1px solid #333; padding: 10px; background: #111; }
         .found-screen { background: #00ff41 !important; color: #000 !important; }
         button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
@@ -22,34 +19,66 @@
 <body>
 
     <div class="panel">
-        <h2 style="text-align:center; margin:0 0 10px 0;">OMEGA BUFFERED</h2>
+        <h2 style="text-align:center; margin:0 0 10px 0;">OMEGA WORKER v5.5</h2>
         
         <div class="metrics">
-            <span>TOTAL: <span id="counter" class="metric-val">0</span></span>
-            <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
+            <span>TESTES: <span id="counter" class="metric-val">0</span></span>
+            <span>TEMPO: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div id="current-batch">AGUARDANDO LOTE...</div>
-
-        <div id="console">> BUFFER INICIALIZADO (1000 S/LOTE)...</div>
-        <button id="btn" onclick="startBufferedAttack()">EXECUTAR COM BUFFER</button>
+        <div id="current-pass">AGUARDANDO...</div>
+        <div id="console">> MODO MULTI-THREAD ATIVADO...</div>
+        <button id="btn" onclick="startWorkerAttack()">INICIAR QUEBRA REAL</button>
     </div>
 
+    <!-- O Alvo agora é acessado de forma mais leve -->
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
+    <script id="worker-script" type="application/javascript">
+        // ESTE É O CÓDIGO QUE VAI RODAR NA THREAD SEPARADA
+        self.onmessage = function(e) {
+            const { charset, maxLen } = e.data;
+            let total = 0;
+
+            for (let t = 1; t <= maxLen; t++) {
+                let indices = new Array(t).fill(0);
+                let ativo = true;
+
+                while (ativo) {
+                    let combo = "";
+                    for(let i=0; i<t; i++) combo += charset[indices[i]];
+                    
+                    total++;
+
+                    // A cada 2000 senhas, reportamos para a tela principal
+                    if (total % 2000 === 0) {
+                        self.postMessage({ type: 'progress', combo: combo, total: total });
+                    }
+
+                    // Envia a senha para testar
+                    self.postMessage({ type: 'test', combo: combo });
+
+                    let p = t - 1;
+                    while (p >= 0) {
+                        indices[p]++;
+                        if (indices[p] < charset.length) break;
+                        indices[p] = 0;
+                        p--;
+                    }
+                    if (p < 0) ativo = false;
+                }
+            }
+        };
+    </script>
+
     <script>
-        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         let encontrado = false;
-        let totalSenhas = 0;
         let segundos = 0;
-        
+
         function log(m) {
             const c = document.getElementById('console');
-            const d = document.createElement('div');
-            d.innerHTML = `> ${m}`;
-            c.appendChild(d);
+            c.innerHTML += `<div>> ${m}</div>`;
             c.scrollTop = c.scrollHeight;
-            if(c.childNodes.length > 30) c.removeChild(c.firstChild);
         }
 
         function cronometro() {
@@ -61,77 +90,45 @@
             setTimeout(cronometro, 1000);
         }
 
-        async function startBufferedAttack() {
+        function startWorkerAttack() {
+            const btn = document.getElementById('btn');
             const frame = document.getElementById('targetFrame');
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
             const input = targetDoc.getElementById('pass');
             const botaoAlvo = targetDoc.querySelector('button');
             const statusAlvo = targetDoc.getElementById('status');
             
-            const counterDisplay = document.getElementById('counter');
-            const batchDisplay = document.getElementById('current-batch');
-
-            document.getElementById('btn').disabled = true;
+            btn.disabled = true;
             cronometro();
+            log("Worker disparado em thread separada.");
 
-            const rodarNivel = async (tamanho) => {
-                let indices = new Array(tamanho).fill(0);
-                
-                while (!encontrado) {
-                    let loteSenhas = []; // Buffer de memória
+            // Criando o Worker a partir do script interno
+            const blob = new Blob([document.getElementById('worker-script').textContent], {type: 'application/javascript'});
+            const worker = new Worker(window.URL.createObjectURL(blob));
 
-                    // FASE 1: PROCESSAMENTO INVISÍVEL (LOTE DE 1000)
-                    for (let b = 0; b < 1000; b++) {
-                        let combo = "";
-                        for(let i=0; i<tamanho; i++) combo += charset[indices[i]];
+            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+            worker.postMessage({ charset: charset, maxLen: 8 });
 
-                        input.value = combo;
-                        botaoAlvo.click();
-                        totalSenhas++;
+            worker.onmessage = function(e) {
+                if (encontrado) return;
 
-                        if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
-                            encontrado = true;
-                            document.body.classList.add('found-screen');
-                            alert(`!!! SENHA ENCONTRADA !!!\n${combo}`);
-                            return;
-                        }
+                if (e.data.type === 'progress') {
+                    document.getElementById('counter').innerText = e.data.total.toLocaleString();
+                    document.getElementById('current-pass').innerText = e.data.combo;
+                }
 
-                        // Incremento da lógica
-                        let p = tamanho - 1;
-                        while (p >= 0) {
-                            indices[p]++;
-                            if (indices[p] < charset.length) break;
-                            indices[p] = 0;
-                            p--;
-                        }
-                        if (p < 0) {
-                            // Se terminou o nível antes das 1000, sai do loop
-                            break; 
-                        }
+                if (e.data.type === 'test') {
+                    input.value = e.data.combo;
+                    botaoAlvo.click();
+
+                    if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                        encontrado = true;
+                        worker.terminate();
+                        document.body.classList.add('found-screen');
+                        alert("SUCESSO! Senha: " + e.data.combo);
                     }
-
-                    // FASE 2: ATUALIZAÇÃO DA TELA (APÓS AS 1000)
-                    // Pega a última senha testada no lote para mostrar
-                    let ultimaDoLote = "";
-                    for(let i=0; i<tamanho; i++) ultimaDoLote += charset[indices[i]];
-                    
-                    counterDisplay.innerText = totalSenhas.toLocaleString();
-                    batchDisplay.innerText = `LOTE: ${ultimaDoLote}`;
-                    
-                    if(totalSenhas % 5000 === 0) {
-                        log(`Lote finalizado em: ${ultimaDoLote}`);
-                    }
-
-                    // Dá 1ms de folga total para o Chrome processar a renderização
-                    await new Promise(r => setTimeout(r, 1));
                 }
             };
-
-            for (let t = 1; t <= 8; t++) {
-                if (encontrado) break;
-                log(`VARRENDO COMPRIMENTO ${t}...`);
-                await rodarNivel(t);
-            }
         }
     </script>
 </body>
