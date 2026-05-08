@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL OS - DASHBOARD</title>
+    <style>
+        /* Estética Hacker Avançada */
+        body { 
+            background-color: #050505; 
+            color: #00ff41; 
+            font-family: 'Courier New', Courier, monospace; 
+            margin: 0; 
+            padding: 20px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            text-shadow: 0 0 10px #00ff41;
+            letter-spacing: 3px;
+            margin: 10px 0;
+        }
+
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+
+        /* Container do Painel */
+        .panel {
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid #00ff41;
+            padding: 20px;
+            background: rgba(0, 20, 0, 0.85);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.2);
+            border-radius: 5px;
+        }
+
+        .stats {
+            font-size: 12px;
+            border-bottom: 1px solid #113311;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            color: #008f11;
+        }
+
+        /* Console de Logs */
+        #console {
+            height: 250px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #113311;
+            padding: 10px;
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: left;
+            border-radius: 3px;
+        }
+
+        .log-entry { margin-bottom: 5px; }
+        .log-success { color: #fff; background: #238636; padding: 2px 5px; border-radius: 2px; }
+        .log-error { color: #ff7b72; }
+
+        /* Botão de Comando */
+        button {
+            background: transparent;
+            color: #00ff41;
+            border: 1px solid #00ff41;
+            padding: 15px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            transition: 0.3s;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            background: #00ff41;
+            color: #000;
+            box-shadow: 0 0 15px #00ff41;
+        }
+
+        /* Scrollbar customizada estilo terminal */
+        #console::-webkit-scrollbar { width: 5px; }
+        #console::-webkit-scrollbar-thumb { background: #008f11; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1 class="blink">SENTINEL OS v1.0</h1>
+        <div style="font-size: 10px;">MOBILE PENETRATION FRAMEWORK</div>
+    </div>
+
+    <div class="panel">
+        <div class="stats">
+            > OPERADOR: IAN_FELIX<br>
+            > ALVO_DETECTADO: ./alvo.html<br>
+            > MÉTODO: Dictionary_Attack_v2
+        </div>
+
+        <button id="btnStart" onclick="executarAtaque()">INICIAR INVASÃO</button>
+
+        <div id="console">
+            <div class="log-entry">> Sistema em standby. Aguardando comando...</div>
+        </div>
+    </div>
+
+    <script>
+        // Função para escrever no console com efeito de tempo
+        async function log(texto, tipo = "") {
+            const consoleBox = document.getElementById('console');
+            const entrada = document.createElement('div');
+            entrada.className = "log-entry";
+            
+            if (tipo === "success") {
+                entrada.innerHTML = `> <span class="log-success">${texto}</span>`;
+            } else if (tipo === "error") {
+                entrada.innerHTML = `> <span class="log-error">${texto}</span>`;
+            } else {
+                entrada.innerHTML = `> ${texto}`;
+            }
+
+            consoleBox.appendChild(entrada);
+            consoleBox.scrollTop = consoleBox.scrollHeight; // Auto-scroll
+        }
+
+        async function executarAtaque() {
+            const btn = document.getElementById('btnStart');
+            const consoleBox = document.getElementById('console');
+            
+            // Lista de senhas para o teste (wordlist)
+            const wordlist = ["1234", "admin", "password", "12345", "root", "qwerty"];
+            const SENHA_CORRETA = "12345"; // Deve ser a mesma do alvo.html
+
+            // Resetar painel
+            btn.disabled = true;
+            btn.innerText = "EXECUTANDO...";
+            consoleBox.innerHTML = "";
+
+            await log("Iniciando Handshake com servidor alvo...");
+            await new Promise(r => setTimeout(r, 1000));
+            await log("Bypass de Firewall em progresso...");
+            await new Promise(r => setTimeout(r, 1200));
+
+            for (let i = 0; i < wordlist.length; i++) {
+                let tentativa = wordlist[i];
+                await log(`Testando credencial [${i+1}/${wordlist.length}]: ${tentativa}`);
+                
+                // Simula o tempo de resposta do servidor
+                await new Promise(r => setTimeout(r, 800));
+
+                if (tentativa === SENHA_CORRETA) {
+                    await log("SENHA IDENTIFICADA COM SUCESSO!", "success");
+                    await log("Injetando payload de acesso...");
+                    await new Promise(r => setTimeout(r, 1000));
+                    await log("ACESSO CONCEDIDO AO DIRETÓRIO /ROOT/", "success");
+                    
+                    // Alerta final
+                    setTimeout(() => {
+                        alert("SISTEMA INVADIDO!\n\nAlvo: alvo.html\nSenha: " + tentativa);
+                    }, 500);
+                    
+                    btn.disabled = false;
+                    btn.innerText = "REINICIAR ATAQUE";
+                    return;
+                } else {
+                    await log(`Falha na tentativa: ${tentativa}`, "error");
+                }
+            }
+
+            await log("ATAQUE FINALIZADO: Nenhuma senha encontrada.", "error");
+            btn.disabled = false;
+            btn.innerText = "TENTAR NOVAMENTE";
+        }
+    </script>
+</body>
+</html>
