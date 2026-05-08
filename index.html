@@ -3,30 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OS - REAL BRUTE FORCE</title>
+    <title>SENTINEL OS - HIGH VELOCITY</title>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: rgba(0, 10, 0, 0.9); box-shadow: 0 0 20px #00ff4155; }
-        #console { height: 300px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; margin-top: 15px; font-size: 12px; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 15px; }
-        .progress-container { width: 100%; background: #111; height: 5px; margin-top: 10px; }
-        #bar { width: 0%; height: 100%; background: #00ff41; transition: 0.1s; }
-        .found { background: #fff; color: #000; padding: 5px; font-weight: bold; }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; text-align: center; }
+        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: #000; margin: auto; box-shadow: 0 0 20px #00ff4133; }
+        #console { height: 250px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; margin-top: 15px; font-size: 11px; text-align: left; }
+        .progress-bar { width: 100%; height: 10px; background: #111; margin: 10px 0; border: 1px solid #00ff41; }
+        #fill { width: 0%; height: 100%; background: #00ff41; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>SENTINEL OS v3.0</h1>
+    <h1>SENTINEL HIGH-SPEED</h1>
     <div class="panel">
-        <div style="font-size: 10px; margin-bottom: 10px;">> ALVO REAL DETECTADO: alvo.html</div>
-        <div class="progress-container"><div id="bar"></div></div>
-        
-        <div id="console">> AGUARDANDO INÍCIO...</div>
-        
-        <button id="btn" onclick="crackServer()">INICIAR QUEBRA REAL</button>
+        <div id="status">> ALVO: alvo.html | COMPLEXIDADE: 6 DIG</div>
+        <div class="progress-bar"><div id="fill"></div></div>
+        <div id="console">> AGUARDANDO COMANDO...</div>
+        <button id="btn" onclick="crack6Digits()">EXECUTAR QUEBRA DE 6 DÍGITOS</button>
     </div>
 
-    <!-- O segredo: carregamos o alvo em um frame invisível para interagir com ele -->
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
     <script>
@@ -36,50 +32,55 @@
             c.scrollTop = c.scrollHeight;
         }
 
-        async function crackServer() {
+        async function crack6Digits() {
             const btn = document.getElementById('btn');
-            const frame = document.getElementById('targetFrame');
-            const letras = "abcdefghijklmnopqrstuvwxyz";
+            const targetDoc = document.getElementById('targetFrame').contentDocument;
+            const input = targetDoc.getElementById('pass');
+            const botao = targetDoc.querySelector('button');
+            const statusAlvo = targetDoc.getElementById('status');
             
+            const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
             btn.disabled = true;
-            await log("Sincronizando com o DOM do alvo...");
+            log("Iniciando varredura massiva de 6 dígitos...");
 
-            // Pegamos a lógica de verificação direto do arquivo alvo.html
-            // Isso simula o script tentando entender como o alvo valida a senha
-            const targetDoc = frame.contentDocument || frame.contentWindow.document;
-            
-            for (let i = 0; i < letras.length; i++) {
-                for (let j = 0; j < letras.length; j++) {
-                    for (let k = 0; k < letras.length; k++) {
-                        let combo = letras[i] + letras[j] + letras[k];
-                        
-                        // Atualiza a barra e o log a cada 50 tentativas
-                        if (k === 0) {
-                            document.getElementById('bar').style.width = `${(i/26)*100}%`;
-                            await log(`Injetando: ${combo}...`);
-                            await new Promise(r => setTimeout(r, 1));
-                        }
+            // Vamos direto para o tamanho 6 para ganhar tempo
+            let count = 0;
+            const totalEstima = Math.pow(charset.length, 6);
 
-                        // AÇÃO REAL: O script tenta a senha no código do alvo
-                        // Ele "fala" com a função check() que está lá no alvo.html
-                        const input = targetDoc.getElementById('pass');
-                        const botaoAlvo = targetDoc.querySelector('button');
-                        const statusAlvo = targetDoc.getElementById('status');
+            // Gerador de combinações otimizado para performance
+            async function brute(prefixo, profundidade) {
+                if (profundidade === 0) {
+                    count++;
+                    input.value = prefixo;
+                    botao.click();
 
-                        input.value = combo;
-                        botaoAlvo.click(); // Simula o clique no botão do site alvo
+                    if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                        log(`[!!!] SUCESSO: ${prefixo}`, "found");
+                        alert("INVADIDO! Senha: " + prefixo);
+                        return true;
+                    }
 
-                        // Verifica o resultado que o site alvo deu
-                        if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
-                            await log(`[!!!] ALVO ROMPIDO! SENHA: ${combo}`, "found");
-                            document.getElementById('bar').style.width = "100%";
-                            alert("SISTEMA INVADIDO!\nA senha descoberta pelo motor foi: " + combo);
-                            btn.disabled = false;
-                            return;
+                    if (count % 1000 === 0) {
+                        document.getElementById('fill').style.width = `${(count/1000000)*100}%`; // Simulação de barra
+                        if (count % 5000 === 0) {
+                            await log(`Processando: ${prefixo}...`);
+                            await new Promise(r => setTimeout(r, 0)); // Pausa mínima para o UI não travar
                         }
                     }
+                    return false;
                 }
+
+                for (let i = 0; i < charset.length; i++) {
+                    if (await brute(prefixo + charset[i], profundidade - 1)) return true;
+                }
+                return false;
             }
+
+            // Inicia o ataque focado em 6 dígitos
+            await brute("", 6);
+            
+            log("Processo finalizado.");
+            btn.disabled = false;
         }
     </script>
 </body>
