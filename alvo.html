@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SISTEMA RESTRITO - ALVO</title>
+    <style>
+        body { background: #1a1a1a; color: white; font-family: sans-serif; text-align: center; }
+        .login-card { border: 1px solid #444; padding: 20px; width: 300px; margin: 100px auto; }
+        #status { color: yellow; margin-top: 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>ÁREA PRIVADA</h2>
+        <input type="password" id="pass" placeholder="Senha do Admin">
+        <button onclick="check()">ENTRAR</button>
+        <div id="status">Aguardando login...</div>
+    </div>
+
+    <script>
+        // A falha: A senha é fraca e o sistema não tem limite de tentativas
+        const SENHA_REAL = "12345"; 
+
+        function check() {
+            const input = document.getElementById('pass').value;
+            const status = document.getElementById('status');
+            
+            if(input === SENHA_REAL) {
+                status.innerHTML = "ACESSO CONCEDIDO!";
+                status.style.color = "lime";
+            } else {
+                status.innerHTML = "SENHA INCORRETA!";
+                status.style.color = "red";
+            }
+        }
+    </script>
+</body>
+</html>
