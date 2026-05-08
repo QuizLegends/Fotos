@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OMEGA v5.1</title>
+    <title>SENTINEL OMEGA v5.3 - BUFFERED</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
         .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; }
         .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 11px; margin-bottom: 10px; }
-        .metric-val { color: #fff; text-shadow: 0 0 5px #00ff41; font-variant-numeric: tabular-nums; }
-        #console { height: 150px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
+        .metric-val { color: #fff; font-weight: bold; }
+        
+        /* Console com Scroll Suave */
+        #console { height: 180px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
+        
+        #current-batch { font-size: 18px; color: #00ff41; text-align: center; margin: 10px 0; border: 1px solid #111; padding: 5px; }
         .found-screen { background: #00ff41 !important; color: #000 !important; }
         button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
@@ -18,15 +22,17 @@
 <body>
 
     <div class="panel">
-        <h2 style="text-align:center; margin:0 0 10px 0;">SENTINEL OMEGA 5.1</h2>
+        <h2 style="text-align:center; margin:0 0 10px 0;">OMEGA BUFFERED</h2>
         
         <div class="metrics">
-            <span>TESTES: <span id="counter" class="metric-val">0</span></span>
-            <span>TEMPO: <span id="timer" class="metric-val">00:00</span></span>
+            <span>TOTAL: <span id="counter" class="metric-val">0</span></span>
+            <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div id="console">> MODO STEALTH ATIVADO...</div>
-        <button id="btn" onclick="startOmega()">LANÇAR ATAQUE REAL</button>
+        <div id="current-batch">AGUARDANDO LOTE...</div>
+
+        <div id="console">> BUFFER INICIALIZADO (1000 S/LOTE)...</div>
+        <button id="btn" onclick="startBufferedAttack()">EXECUTAR COM BUFFER</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
@@ -39,9 +45,11 @@
         
         function log(m) {
             const c = document.getElementById('console');
-            c.innerHTML += `<div>> ${m}</div>`;
+            const d = document.createElement('div');
+            d.innerHTML = `> ${m}`;
+            c.appendChild(d);
             c.scrollTop = c.scrollHeight;
-            if(c.childNodes.length > 50) c.removeChild(c.firstChild); // Mantém o console leve
+            if(c.childNodes.length > 30) c.removeChild(c.firstChild);
         }
 
         function cronometro() {
@@ -53,24 +61,27 @@
             setTimeout(cronometro, 1000);
         }
 
-        async function startOmega() {
+        async function startBufferedAttack() {
             const frame = document.getElementById('targetFrame');
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
             const input = targetDoc.getElementById('pass');
             const botaoAlvo = targetDoc.querySelector('button');
             const statusAlvo = targetDoc.getElementById('status');
+            
             const counterDisplay = document.getElementById('counter');
+            const batchDisplay = document.getElementById('current-batch');
 
             document.getElementById('btn').disabled = true;
             cronometro();
-            log("Iniciando varredura profunda...");
 
             const rodarNivel = async (tamanho) => {
                 let indices = new Array(tamanho).fill(0);
                 
                 while (!encontrado) {
-                    // TESTE EM BLOCO DE 1500 (Aumentei para chegar nos 200k)
-                    for (let b = 0; b < 1500; b++) {
+                    let loteSenhas = []; // Buffer de memória
+
+                    // FASE 1: PROCESSAMENTO INVISÍVEL (LOTE DE 1000)
+                    for (let b = 0; b < 1000; b++) {
                         let combo = "";
                         for(let i=0; i<tamanho; i++) combo += charset[indices[i]];
 
@@ -81,11 +92,11 @@
                         if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
                             encontrado = true;
                             document.body.classList.add('found-screen');
-                            alert(`SENHA: ${combo}\nTOTAL: ${totalSenhas}`);
+                            alert(`!!! SENHA ENCONTRADA !!!\n${combo}`);
                             return;
                         }
 
-                        // Incremento
+                        // Incremento da lógica
                         let p = tamanho - 1;
                         while (p >= 0) {
                             indices[p]++;
@@ -93,19 +104,32 @@
                             indices[p] = 0;
                             p--;
                         }
-                        if (p < 0) return;
+                        if (p < 0) {
+                            // Se terminou o nível antes das 1000, sai do loop
+                            break; 
+                        }
                     }
 
-                    // Sincroniza contador com a tela e dá um respiro
+                    // FASE 2: ATUALIZAÇÃO DA TELA (APÓS AS 1000)
+                    // Pega a última senha testada no lote para mostrar
+                    let ultimaDoLote = "";
+                    for(let i=0; i<tamanho; i++) ultimaDoLote += charset[indices[i]];
+                    
                     counterDisplay.innerText = totalSenhas.toLocaleString();
-                    if(totalSenhas % 15000 === 0) log("Processando lote...");
-                    await new Promise(r => setTimeout(r, 0)); 
+                    batchDisplay.innerText = `LOTE: ${ultimaDoLote}`;
+                    
+                    if(totalSenhas % 5000 === 0) {
+                        log(`Lote finalizado em: ${ultimaDoLote}`);
+                    }
+
+                    // Dá 1ms de folga total para o Chrome processar a renderização
+                    await new Promise(r => setTimeout(r, 1));
                 }
             };
 
             for (let t = 1; t <= 8; t++) {
                 if (encontrado) break;
-                log(`Varrendo nível: ${t}`);
+                log(`VARRENDO COMPRIMENTO ${t}...`);
                 await rodarNivel(t);
             }
         }
