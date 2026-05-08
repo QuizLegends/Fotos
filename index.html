@@ -3,174 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OS v4.2 - MOBILE FIX</title>
+    <title>SENTINEL OMEGA v5.0</title>
     <style>
-        /* Ajuste global para evitar transbordamento lateral */
         * { box-sizing: border-box; }
-
-        body { 
-            background: #050505; 
-            color: #00ff41; 
-            font-family: 'Courier New', monospace; 
-            padding: 10px; 
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            transition: background 0.5s;
-        }
-
-        .panel { 
-            width: 95%; /* Ocupa quase toda a largura, mas com respiro */
-            max-width: 450px; 
-            border: 1px solid #00ff41; 
-            padding: 15px; 
-            background: #000; 
-            box-shadow: 0 0 15px rgba(0,255,65,0.2);
-            margin-top: 10px;
-        }
-
-        .metrics-bar { 
-            display: flex; 
-            justify-content: space-between; 
-            background: #111; 
-            padding: 8px; 
-            border: 1px solid #222; 
-            font-size: 10px; 
-            margin-bottom: 10px;
-            color: #00ff41;
-        }
-        .metric-val { color: #fff; font-weight: bold; }
-
-        #console { 
-            height: 220px; 
-            overflow-y: auto; 
-            background: #000; 
-            border: 1px solid #113311; 
-            padding: 10px; 
-            font-size: 11px; 
-            margin-bottom: 10px;
-            text-align: left;
-        }
-
-        .found-screen { background: #fff !important; color: #000 !important; }
-        
-        button { 
-            background: #00ff41; 
-            color: #000; 
-            border: none; 
-            padding: 18px; 
-            width: 100%; 
-            font-weight: bold; 
-            cursor: pointer;
-            text-transform: uppercase;
-        }
-
+        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
+        .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; box-shadow: 0 0 30px rgba(0,255,65,0.2); }
+        .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 11px; margin-bottom: 10px; }
+        .metric-val { color: #fff; text-shadow: 0 0 5px #00ff41; }
+        #console { height: 180px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #00ff41; }
+        .found-screen { background: #00ff41 !important; color: #000 !important; }
+        button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; }
         button:disabled { background: #003300; color: #006600; }
-        .status-box { font-size: 9px; margin-bottom: 5px; color: #888; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div class="panel" id="mainPanel">
-        <h2 style="margin: 0 0 10px 0; font-size: 1.5em; text-align: center;">SENTINEL v4.2</h2>
+    <div class="panel">
+        <h2 style="text-align:center; margin:0 0 10px 0; letter-spacing: 2px;">SENTINEL OMEGA</h2>
         
-        <div class="metrics-bar">
-            <span>PASS: <span id="counter" class="metric-val">0</span></span>
-            <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
+        <div class="metrics">
+            <span>TESTES: <span id="counter" class="metric-val">0</span></span>
+            <span>TEMPO: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div class="status-box">ENGINE: RECURSIVE BRUTE FORCE</div>
-        <div id="console">> CONSOLE INICIALIZADO...</div>
-        <button id="btn" onclick="iniciarAtaqueEstavel()">EXECUTAR ATAQUE</button>
+        <div id="console">> AGUARDANDO ALVO DE ALTA COMPLEXIDADE...</div>
+        <button id="btn" onclick="startOmegaAttack()">LANÇAR ATAQUE OMEGA</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
     <script>
-        const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+        // Charset Completo: Minúsculas, Maiúsculas, Números e Especiais
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         let encontrado = false;
         let totalSenhas = 0;
         let segundos = 0;
-        let intervaloTimer;
-
-        async function log(m) {
+        
+        function log(m) {
             const c = document.getElementById('console');
-            c.innerHTML += `<div>> ${m}</div>`;
+            const d = document.createElement('div');
+            d.innerHTML = `> ${m}`;
+            c.appendChild(d);
             c.scrollTop = c.scrollHeight;
         }
 
-        function atualizarCronometro() {
+        function cronometro() {
+            if (encontrado) return;
             segundos++;
             const mins = Math.floor(segundos / 60).toString().padStart(2, '0');
             const segs = (segundos % 60).toString().padStart(2, '0');
             document.getElementById('timer').innerText = `${mins}:${segs}`;
+            setTimeout(cronometro, 1000);
         }
 
-        async function iniciarAtaqueEstavel() {
-            if (encontrado) return;
-            const btn = document.getElementById('btn');
+        async function startOmegaAttack() {
             const frame = document.getElementById('targetFrame');
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
-            
+            const input = targetDoc.getElementById('pass');
+            const botaoAlvo = targetDoc.querySelector('button');
+            const statusAlvo = targetDoc.getElementById('status');
+            const btn = document.getElementById('btn');
+
             btn.disabled = true;
-            btn.innerText = "PROCESSANDO...";
-            
-            intervaloTimer = setInterval(atualizarCronometro, 1000);
-            await log("Iniciando injeção de pacotes...");
+            btn.innerText = "INJETANDO DICIONÁRIO COMPLEXO...";
+            cronometro();
+            log("MODO OMEGA: 8 DÍGITOS + ESPECIAIS");
 
-            const testar = (combo) => {
-                totalSenhas++;
-                document.getElementById('counter').innerText = totalSenhas;
-
-                const input = targetDoc.getElementById('pass');
-                const botao = targetDoc.querySelector('button');
-                const statusAlvo = targetDoc.getElementById('status');
-
+            // Função de tentativa individual
+            const tentar = (combo) => {
                 input.value = combo;
-                botao.click();
+                botaoAlvo.click();
+                totalSenhas++;
 
                 if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
                     encontrado = true;
-                    clearInterval(intervaloTimer);
                     document.body.classList.add('found-screen');
-                    alert(`SUCESSO!\nSENHA: ${combo}\nTEMPO: ${document.getElementById('timer').innerText}`);
-                    log(`SENHA LOCALIZADA: ${combo}`);
+                    alert(`!!! ACESSO TOTAL !!!\nSENHA: ${combo}\nTESTES: ${totalSenhas}\nTEMPO: ${document.getElementById('timer').innerText}`);
                     return true;
                 }
                 return false;
             };
 
-            let c1=0, c2=0, c3=0, c4=0, c5=0, c6=0; 
-            
-            const rodarBloco = () => {
-                if (encontrado) return;
+            // Gerador Iterativo para evitar estouro de pilha (Stack Overflow)
+            const rodarNivel = async (tamanho) => {
+                let indices = new Array(tamanho).fill(0);
+                
+                while (!encontrado) {
+                    // Gera a combinação atual baseada nos índices
+                    let combo = "";
+                    for(let i=0; i<tamanho; i++) combo += charset[indices[i]];
 
-                for (let i = 0; i < 400; i++) {
-                    let senha = charset[c1] + charset[c2] + charset[c3] + charset[c4] + charset[c5] + charset[c6];
+                    if (tentar(combo)) return;
+
+                    // Lógica de incremento (odômetro)
+                    let p = tamanho - 1;
+                    while (p >= 0) {
+                        indices[p]++;
+                        if (indices[p] < charset.length) break;
+                        indices[p] = 0;
+                        p--;
+                    }
                     
-                    if (testar(senha)) return;
+                    if (p < 0) break; // Fim desse tamanho de senha
 
-                    c6++;
-                    if (c6 >= charset.length) { c6 = 0; c5++; }
-                    if (c5 >= charset.length) { c5 = 0; c4++; }
-                    if (c4 >= charset.length) { c4 = 0; c3++; }
-                    if (c3 >= charset.length) { c3 = 0; c2++; }
-                    if (c2 >= charset.length) { c2 = 0; c1++; }
-                    if (c1 >= charset.length) { 
-                        clearInterval(intervaloTimer);
-                        log("Fim da lista."); 
-                        return; 
+                    // Controle de interface e velocidade
+                    if (totalSenhas % 800 === 0) {
+                        document.getElementById('counter').innerText = totalSenhas.toLocaleString();
+                        if (totalSenhas % 8000 === 0) log(`Tentando: ${combo}`);
+                        await new Promise(r => setTimeout(r, 1));
                     }
                 }
-
-                // Agora o log mostra a combinação ATUAL sendo testada
-                let atual = charset[c1] + charset[c2] + charset[c3] + charset[c4] + charset[c5] + charset[c6];
-                log(`Tentando: ${atual}`);
-                
-                setTimeout(rodarBloco, 1); 
             };
 
-            rodarBloco();
+            // Inicia do tamanho 1 até o 8
+            for (let t = 1; t <= 8; t++) {
+                if (encontrado) break;
+                log(`Iniciando varredura: ${t} dígito(s)...`);
+                await rodarNivel(t);
+            }
         }
     </script>
 </body>
