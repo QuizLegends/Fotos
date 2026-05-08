@@ -3,132 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OMEGA v5.5 - WORKER MODE</title>
+    <title>SENTINEL OS v4.3 - OMEGA STABLE</title>
     <style>
         * { box-sizing: border-box; }
-        body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
-        .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; }
-        .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 12px; margin-bottom: 10px; }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
+        .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #000; box-shadow: 0 0 15px rgba(0,255,65,0.2); margin-top: 10px; }
+        .metrics-bar { display: flex; justify-content: space-between; background: #111; padding: 8px; border: 1px solid #222; font-size: 10px; margin-bottom: 10px; color: #00ff41; }
         .metric-val { color: #fff; font-weight: bold; }
-        #console { height: 150px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
-        #current-pass { font-size: 20px; color: #fff; text-align: center; margin: 15px 0; border: 1px solid #333; padding: 10px; background: #111; }
-        .found-screen { background: #00ff41 !important; color: #000 !important; }
-        button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; }
+        #console { height: 220px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; text-align: left; }
+        .found-screen { background: #fff !important; color: #000 !important; }
+        button { background: #00ff41; color: #000; border: none; padding: 18px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        button:disabled { background: #003300; color: #006600; }
     </style>
 </head>
 <body>
 
-    <div class="panel">
-        <h2 style="text-align:center; margin:0 0 10px 0;">OMEGA WORKER v5.5</h2>
+    <div class="panel" id="mainPanel">
+        <h2 style="margin: 0 0 10px 0; font-size: 1.5em; text-align: center;">SENTINEL v4.3</h2>
         
-        <div class="metrics">
-            <span>TESTES: <span id="counter" class="metric-val">0</span></span>
-            <span>TEMPO: <span id="timer" class="metric-val">00:00</span></span>
+        <div class="metrics-bar">
+            <span>PASS: <span id="counter" class="metric-val">0</span></span>
+            <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div id="current-pass">AGUARDANDO...</div>
-        <div id="console">> MODO MULTI-THREAD ATIVADO...</div>
-        <button id="btn" onclick="startWorkerAttack()">INICIAR QUEBRA REAL</button>
+        <div id="console">> AGUARDANDO COMANDO...</div>
+        <button id="btn" onclick="iniciarAtaqueOmega()">EXECUTAR ATAQUE COMPLETO</button>
     </div>
 
-    <!-- O Alvo agora é acessado de forma mais leve -->
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
-    <script id="worker-script" type="application/javascript">
-        // ESTE É O CÓDIGO QUE VAI RODAR NA THREAD SEPARADA
-        self.onmessage = function(e) {
-            const { charset, maxLen } = e.data;
-            let total = 0;
+    <script>
+        // CHARSET COMPLETO: Letras, Números e Especiais
+        const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
+        let encontrado = false;
+        let totalSenhas = 0;
+        let segundos = 0;
+        let intervaloTimer;
 
-            for (let t = 1; t <= maxLen; t++) {
-                let indices = new Array(t).fill(0);
-                let ativo = true;
+        async function log(m) {
+            const c = document.getElementById('console');
+            c.innerHTML += `<div>> ${m}</div>`;
+            c.scrollTop = c.scrollHeight;
+            // Limpa o console se ficar muito longo para não pesar
+            if(c.childNodes.length > 50) c.removeChild(c.firstChild);
+        }
 
-                while (ativo) {
-                    let combo = "";
-                    for(let i=0; i<t; i++) combo += charset[indices[i]];
-                    
-                    total++;
+        function atualizarCronometro() {
+            segundos++;
+            const mins = Math.floor(segundos / 60).toString().padStart(2, '0');
+            const segs = (segundos % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${mins}:${segs}`;
+        }
 
-                    // A cada 2000 senhas, reportamos para a tela principal
-                    if (total % 2000 === 0) {
-                        self.postMessage({ type: 'progress', combo: combo, total: total });
+        async function iniciarAtaqueOmega() {
+            if (encontrado) return;
+            const btn = document.getElementById('btn');
+            const frame = document.getElementById('targetFrame');
+            const targetDoc = frame.contentDocument || frame.contentWindow.document;
+            
+            btn.disabled = true;
+            btn.innerText = "QUEBRANDO...";
+            
+            intervaloTimer = setInterval(atualizarCronometro, 1000);
+            await log("Injetando motor Omega estável...");
+
+            // Função de teste idêntica à sua original
+            const testar = (combo) => {
+                totalSenhas++;
+                if (totalSenhas % 100 === 0) { // Atualiza o contador na tela a cada 100 para ganhar fôlego
+                    document.getElementById('counter').innerText = totalSenhas.toLocaleString();
+                }
+
+                const input = targetDoc.getElementById('pass');
+                const botao = targetDoc.querySelector('button');
+                const statusAlvo = targetDoc.getElementById('status');
+
+                input.value = combo;
+                botao.click();
+
+                if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                    encontrado = true;
+                    clearInterval(intervaloTimer);
+                    document.body.classList.add('found-screen');
+                    alert(`SUCESSO!\nSENHA: ${combo}`);
+                    log(`SENHA LOCALIZADA: ${combo}`);
+                    return true;
+                }
+                return false;
+            };
+
+            // Lógica de Brute Force Universal (começa com 1 caractere e aumenta)
+            let tamanhoAtual = 1;
+            let indices = [0];
+
+            const rodarBloco = () => {
+                if (encontrado) return;
+
+                // MESMO BLOCO DE 400 QUE VOCÊ USOU
+                for (let i = 0; i < 400; i++) {
+                    let senha = "";
+                    for (let j = 0; j < tamanhoAtual; j++) {
+                        senha += charset[indices[j]];
                     }
 
-                    // Envia a senha para testar
-                    self.postMessage({ type: 'test', combo: combo });
+                    if (testar(senha)) return;
 
-                    let p = t - 1;
+                    // Incremento dinâmico (Substitui seus c1, c2, c3...)
+                    let p = tamanhoAtual - 1;
                     while (p >= 0) {
                         indices[p]++;
                         if (indices[p] < charset.length) break;
                         indices[p] = 0;
                         p--;
                     }
-                    if (p < 0) ativo = false;
-                }
-            }
-        };
-    </script>
 
-    <script>
-        let encontrado = false;
-        let segundos = 0;
-
-        function log(m) {
-            const c = document.getElementById('console');
-            c.innerHTML += `<div>> ${m}</div>`;
-            c.scrollTop = c.scrollHeight;
-        }
-
-        function cronometro() {
-            if (encontrado) return;
-            segundos++;
-            const mins = Math.floor(segundos / 60).toString().padStart(2, '0');
-            const segs = (segundos % 60).toString().padStart(2, '0');
-            document.getElementById('timer').innerText = `${mins}:${segs}`;
-            setTimeout(cronometro, 1000);
-        }
-
-        function startWorkerAttack() {
-            const btn = document.getElementById('btn');
-            const frame = document.getElementById('targetFrame');
-            const targetDoc = frame.contentDocument || frame.contentWindow.document;
-            const input = targetDoc.getElementById('pass');
-            const botaoAlvo = targetDoc.querySelector('button');
-            const statusAlvo = targetDoc.getElementById('status');
-            
-            btn.disabled = true;
-            cronometro();
-            log("Worker disparado em thread separada.");
-
-            // Criando o Worker a partir do script interno
-            const blob = new Blob([document.getElementById('worker-script').textContent], {type: 'application/javascript'});
-            const worker = new Worker(window.URL.createObjectURL(blob));
-
-            const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
-            worker.postMessage({ charset: charset, maxLen: 8 });
-
-            worker.onmessage = function(e) {
-                if (encontrado) return;
-
-                if (e.data.type === 'progress') {
-                    document.getElementById('counter').innerText = e.data.total.toLocaleString();
-                    document.getElementById('current-pass').innerText = e.data.combo;
-                }
-
-                if (e.data.type === 'test') {
-                    input.value = e.data.combo;
-                    botaoAlvo.click();
-
-                    if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
-                        encontrado = true;
-                        worker.terminate();
-                        document.body.classList.add('found-screen');
-                        alert("SUCESSO! Senha: " + e.data.combo);
+                    // Se estourou todos os índices, aumenta o tamanho da senha
+                    if (p < 0) {
+                        tamanhoAtual++;
+                        indices = new Array(tamanhoAtual).fill(0);
+                        log(`Aumentando para ${tamanhoAtual} dígitos...`);
+                        break; 
                     }
                 }
+
+                // Log visual do progresso (igual ao seu)
+                let atualStr = "";
+                for(let j=0; j<tamanhoAtual; j++) atualStr += charset[indices[j]];
+                log(`Lote: ${atualStr}`);
+                
+                // O segredo do seu sucesso: o respiro de 1ms
+                setTimeout(rodarBloco, 1);
             };
+
+            rodarBloco();
         }
     </script>
 </body>
