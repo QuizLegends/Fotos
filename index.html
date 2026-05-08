@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OS v4.4 - FINE-TUNED</title>
+    <title>SENTINEL OS v4.3 - OMEGA STABLE</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
         .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #000; box-shadow: 0 0 15px rgba(0,255,65,0.2); margin-top: 10px; }
         .metrics-bar { display: flex; justify-content: space-between; background: #111; padding: 8px; border: 1px solid #222; font-size: 10px; margin-bottom: 10px; color: #00ff41; }
         .metric-val { color: #fff; font-weight: bold; }
-        #console { height: 220px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; text-align: left; color: #008822; }
+        #console { height: 220px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; text-align: left; }
         .found-screen { background: #fff !important; color: #000 !important; }
         button { background: #00ff41; color: #000; border: none; padding: 18px; width: 100%; font-weight: bold; cursor: pointer; text-transform: uppercase; }
         button:disabled { background: #003300; color: #006600; }
@@ -19,20 +19,21 @@
 <body>
 
     <div class="panel" id="mainPanel">
-        <h2 style="margin: 0 0 10px 0; font-size: 1.5em; text-align: center;">SENTINEL v4.4</h2>
+        <h2 style="margin: 0 0 10px 0; font-size: 1.5em; text-align: center;">SENTINEL v4.3</h2>
         
         <div class="metrics-bar">
             <span>PASS: <span id="counter" class="metric-val">0</span></span>
             <span>TIME: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div id="console">> SISTEMA OTIMIZADO PRONTO...</div>
-        <button id="btn" onclick="iniciarAtaqueOmega()">INICIAR INJEÇÃO</button>
+        <div id="console">> AGUARDANDO COMANDO...</div>
+        <button id="btn" onclick="iniciarAtaqueOmega()">EXECUTAR ATAQUE COMPLETO</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
     <script>
+        // CHARSET COMPLETO: Letras, Números e Especiais
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         let encontrado = false;
         let totalSenhas = 0;
@@ -43,7 +44,8 @@
             const c = document.getElementById('console');
             c.innerHTML += `<div>> ${m}</div>`;
             c.scrollTop = c.scrollHeight;
-            if(c.childNodes.length > 40) c.removeChild(c.firstChild);
+            // Limpa o console se ficar muito longo para não pesar
+            if(c.childNodes.length > 50) c.removeChild(c.firstChild);
         }
 
         function atualizarCronometro() {
@@ -59,46 +61,54 @@
             const frame = document.getElementById('targetFrame');
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
             
-            // Cache de elementos do DOM para velocidade máxima
-            const inputField = targetDoc.getElementById('pass');
-            const targetBtn = targetDoc.querySelector('button');
-            const statusLabel = targetDoc.getElementById('status');
-            const counterDisplay = document.getElementById('counter');
-
             btn.disabled = true;
-            btn.innerText = "EM CURSO...";
+            btn.innerText = "QUEBRANDO...";
+            
             intervaloTimer = setInterval(atualizarCronometro, 1000);
-            log("Motor v4.4 (Fine-Tuned) ativo.");
+            await log("Injetando motor Omega estável...");
 
+            // Função de teste idêntica à sua original
+            const testar = (combo) => {
+                totalSenhas++;
+                if (totalSenhas % 100 === 0) { // Atualiza o contador na tela a cada 100 para ganhar fôlego
+                    document.getElementById('counter').innerText = totalSenhas.toLocaleString();
+                }
+
+                const input = targetDoc.getElementById('pass');
+                const botao = targetDoc.querySelector('button');
+                const statusAlvo = targetDoc.getElementById('status');
+
+                input.value = combo;
+                botao.click();
+
+                if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                    encontrado = true;
+                    clearInterval(intervaloTimer);
+                    document.body.classList.add('found-screen');
+                    alert(`SUCESSO!\nSENHA: ${combo}`);
+                    log(`SENHA LOCALIZADA: ${combo}`);
+                    return true;
+                }
+                return false;
+            };
+
+            // Lógica de Brute Force Universal (começa com 1 caractere e aumenta)
             let tamanhoAtual = 1;
             let indices = [0];
-            let lotesSemLog = 0;
 
             const rodarBloco = () => {
                 if (encontrado) return;
 
+                // MESMO BLOCO DE 200 QUE VOCÊ USOU
                 for (let i = 0; i < 200; i++) {
-                    // Otimização: Monta string apenas uma vez por teste
                     let senha = "";
                     for (let j = 0; j < tamanhoAtual; j++) {
                         senha += charset[indices[j]];
                     }
 
-                    // Injeção direta
-                    totalSenhas++;
-                    inputField.value = senha;
-                    targetBtn.click();
+                    if (testar(senha)) return;
 
-                    if (statusLabel.innerHTML.includes("CONCEDIDO")) {
-                        encontrado = true;
-                        clearInterval(intervaloTimer);
-                        document.body.classList.add('found-screen');
-                        counterDisplay.innerText = totalSenhas.toLocaleString();
-                        alert(`SUCESSO!\nSENHA: ${senha}`);
-                        return;
-                    }
-
-                    // Incremento
+                    // Incremento dinâmico (Substitui seus c1, c2, c3...)
                     let p = tamanhoAtual - 1;
                     while (p >= 0) {
                         indices[p]++;
@@ -107,24 +117,21 @@
                         p--;
                     }
 
+                    // Se estourou todos os índices, aumenta o tamanho da senha
                     if (p < 0) {
                         tamanhoAtual++;
                         indices = new Array(tamanhoAtual).fill(0);
-                        log(`Nível: ${tamanhoAtual} dígitos`);
+                        log(`Aumentando para ${tamanhoAtual} dígitos...`);
                         break; 
                     }
                 }
 
-                // Atualização visual inteligente (menos frequente)
-                lotesSemLog++;
-                if (lotesSemLog >= 10) {
-                    counterDisplay.innerText = totalSenhas.toLocaleString();
-                    let atualStr = "";
-                    for(let j=0; j<tamanhoAtual; j++) atualStr += charset[indices[j]];
-                    log(`Testando: ${atualStr}`);
-                    lotesSemLog = 0;
-                }
+                // Log visual do progresso (igual ao seu)
+                let atualStr = "";
+                for(let j=0; j<tamanhoAtual; j++) atualStr += charset[indices[j]];
+                log(`Lote: ${atualStr}`);
                 
+                // O segredo do seu sucesso: o respiro de 1ms
                 setTimeout(rodarBloco, 1);
             };
 
