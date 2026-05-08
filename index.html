@@ -3,84 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OS - HIGH VELOCITY</title>
+    <title>SENTINEL OS v4.0 - ANTI-FREEZE</title>
     <style>
-        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; text-align: center; }
-        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: #000; margin: auto; box-shadow: 0 0 20px #00ff4133; }
-        #console { height: 250px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; margin-top: 15px; font-size: 11px; text-align: left; }
-        .progress-bar { width: 100%; height: 10px; background: #111; margin: 10px 0; border: 1px solid #00ff41; }
-        #fill { width: 0%; height: 100%; background: #00ff41; }
-        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        body { background: #050505; color: #00ff41; font-family: 'Courier New', monospace; padding: 20px; transition: background 0.5s; }
+        .panel { width: 100%; max-width: 500px; border: 1px solid #00ff41; padding: 20px; background: #000; margin: auto; }
+        #console { height: 200px; overflow-y: auto; background: #000; border: 1px solid #113311; padding: 10px; font-size: 11px; margin-bottom: 10px; }
+        .found-screen { background: #fff !important; color: #000 !important; }
+        button { background: #00ff41; color: #000; border: none; padding: 15px; width: 100%; font-weight: bold; }
+        .status-box { font-size: 10px; margin-bottom: 10px; color: #888; }
     </style>
 </head>
 <body>
 
-    <h1>SENTINEL HIGH-SPEED</h1>
-    <div class="panel">
-        <div id="status">> ALVO: alvo.html | COMPLEXIDADE: 6 DIG</div>
-        <div class="progress-bar"><div id="fill"></div></div>
-        <div id="console">> AGUARDANDO COMANDO...</div>
-        <button id="btn" onclick="crack6Digits()">EXECUTAR QUEBRA DE 6 DÍGITOS</button>
+    <div class="panel" id="mainPanel">
+        <h2>SENTINEL v4.0</h2>
+        <div class="status-box">MODO: ESTABILIDADE MÁXIMA (ANTI-TRAVAMENTO)</div>
+        <div id="console">> SISTEMA PRONTO...</div>
+        <button id="btn" onclick="iniciarAtaqueEstavel()">INICIAR QUEBRA</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
     <script>
+        const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
+        let encontrado = false;
+
         async function log(m) {
             const c = document.getElementById('console');
             c.innerHTML += `<div>> ${m}</div>`;
             c.scrollTop = c.scrollHeight;
         }
 
-        async function crack6Digits() {
+        async function iniciarAtaqueEstavel() {
+            if (encontrado) return;
             const btn = document.getElementById('btn');
-            const targetDoc = document.getElementById('targetFrame').contentDocument;
-            const input = targetDoc.getElementById('pass');
-            const botao = targetDoc.querySelector('button');
-            const statusAlvo = targetDoc.getElementById('status');
+            const frame = document.getElementById('targetFrame');
+            const targetDoc = frame.contentDocument || frame.contentWindow.document;
             
-            const charset = "abcdefghijklmnopqrstuvwxyz0123456789";
             btn.disabled = true;
-            log("Iniciando varredura massiva de 6 dígitos...");
+            btn.innerText = "QUEBRANDO...";
+            await log("Iniciando motor estabilizado...");
 
-            // Vamos direto para o tamanho 6 para ganhar tempo
-            let count = 0;
-            const totalEstima = Math.pow(charset.length, 6);
+            // Função para testar uma única combinação
+            const testar = (combo) => {
+                const input = targetDoc.getElementById('pass');
+                const botao = targetDoc.querySelector('button');
+                const statusAlvo = targetDoc.getElementById('status');
 
-            // Gerador de combinações otimizado para performance
-            async function brute(prefixo, profundidade) {
-                if (profundidade === 0) {
-                    count++;
-                    input.value = prefixo;
-                    botao.click();
+                input.value = combo;
+                botao.click();
 
-                    if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
-                        log(`[!!!] SUCESSO: ${prefixo}`, "found");
-                        alert("INVADIDO! Senha: " + prefixo);
-                        return true;
-                    }
-
-                    if (count % 1000 === 0) {
-                        document.getElementById('fill').style.width = `${(count/1000000)*100}%`; // Simulação de barra
-                        if (count % 5000 === 0) {
-                            await log(`Processando: ${prefixo}...`);
-                            await new Promise(r => setTimeout(r, 0)); // Pausa mínima para o UI não travar
-                        }
-                    }
-                    return false;
-                }
-
-                for (let i = 0; i < charset.length; i++) {
-                    if (await brute(prefixo + charset[i], profundidade - 1)) return true;
+                if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                    encontrado = true;
+                    document.body.classList.add('found-screen');
+                    alert("!!! SENHA ENCONTRADA: " + combo + " !!!");
+                    log("SUCESSO: " + combo);
+                    return true;
                 }
                 return false;
-            }
+            };
 
-            // Inicia o ataque focado em 6 dígitos
-            await brute("", 6);
+            // Gerador que permite pausas (evita o travamento do Chrome)
+            let c1=0, c2=0, c3=0, c4=0, c5=0, c6=0; 
             
-            log("Processo finalizado.");
-            btn.disabled = false;
+            const rodarBloco = () => {
+                if (encontrado) return;
+
+                // Testamos um bloco de 500 combinações por vez
+                for (let i = 0; i < 500; i++) {
+                    let senha = charset[c1] + charset[c2] + charset[c3] + charset[c4] + charset[c5] + charset[c6];
+                    
+                    if (testar(senha)) return;
+
+                    // Lógica de incremento dos 6 dígitos
+                    c6++;
+                    if (c6 >= charset.length) { c6 = 0; c5++; }
+                    if (c5 >= charset.length) { c5 = 0; c4++; }
+                    if (c4 >= charset.length) { c4 = 0; c3++; }
+                    if (c3 >= charset.length) { c3 = 0; c2++; }
+                    if (c2 >= charset.length) { c2 = 0; c1++; }
+                    if (c1 >= charset.length) { log("Fim das possibilidades."); return; }
+                }
+
+                // O SEGREDO: Aqui damos 1 milissegundo para o Chrome respirar
+                log("Testando: " + charset[c1] + charset[c2] + charset[c3] + "...");
+                setTimeout(rodarBloco, 1); 
+            };
+
+            rodarBloco();
         }
     </script>
 </body>
