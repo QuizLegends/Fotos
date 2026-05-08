@@ -3,37 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SENTINEL OMEGA v5.0</title>
+    <title>SENTINEL OMEGA v5.1</title>
     <style>
         * { box-sizing: border-box; }
         body { background: #000; color: #00ff41; font-family: 'Courier New', monospace; padding: 10px; margin: 0; display: flex; justify-content: center; }
-        .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; box-shadow: 0 0 30px rgba(0,255,65,0.2); }
+        .panel { width: 95%; max-width: 450px; border: 1px solid #00ff41; padding: 15px; background: #050505; }
         .metrics { display: flex; justify-content: space-between; background: #111; padding: 10px; border: 1px solid #222; font-size: 11px; margin-bottom: 10px; }
-        .metric-val { color: #fff; text-shadow: 0 0 5px #00ff41; }
-        #console { height: 180px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #00ff41; }
+        .metric-val { color: #fff; text-shadow: 0 0 5px #00ff41; font-variant-numeric: tabular-nums; }
+        #console { height: 150px; overflow-y: auto; background: #000; border: 1px solid #1a1a1a; padding: 10px; font-size: 10px; margin-bottom: 10px; color: #008822; }
         .found-screen { background: #00ff41 !important; color: #000 !important; }
-        button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; font-size: 14px; }
-        button:disabled { background: #003300; color: #006600; }
+        button { background: #00ff41; color: #000; border: none; padding: 20px; width: 100%; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="panel">
-        <h2 style="text-align:center; margin:0 0 10px 0; letter-spacing: 2px;">SENTINEL OMEGA</h2>
+        <h2 style="text-align:center; margin:0 0 10px 0;">SENTINEL OMEGA 5.1</h2>
         
         <div class="metrics">
             <span>TESTES: <span id="counter" class="metric-val">0</span></span>
             <span>TEMPO: <span id="timer" class="metric-val">00:00</span></span>
         </div>
 
-        <div id="console">> AGUARDANDO ALVO DE ALTA COMPLEXIDADE...</div>
-        <button id="btn" onclick="startOmegaAttack()">LANÇAR ATAQUE OMEGA</button>
+        <div id="console">> MODO STEALTH ATIVADO...</div>
+        <button id="btn" onclick="startOmega()">LANÇAR ATAQUE REAL</button>
     </div>
 
     <iframe id="targetFrame" src="alvo.html" style="display:none;"></iframe>
 
     <script>
-        // Charset Completo: Minúsculas, Maiúsculas, Números e Especiais
         const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=[]{}|;:,.<>?";
         let encontrado = false;
         let totalSenhas = 0;
@@ -41,10 +39,9 @@
         
         function log(m) {
             const c = document.getElementById('console');
-            const d = document.createElement('div');
-            d.innerHTML = `> ${m}`;
-            c.appendChild(d);
+            c.innerHTML += `<div>> ${m}</div>`;
             c.scrollTop = c.scrollHeight;
+            if(c.childNodes.length > 50) c.removeChild(c.firstChild); // Mantém o console leve
         }
 
         function cronometro() {
@@ -56,69 +53,59 @@
             setTimeout(cronometro, 1000);
         }
 
-        async function startOmegaAttack() {
+        async function startOmega() {
             const frame = document.getElementById('targetFrame');
             const targetDoc = frame.contentDocument || frame.contentWindow.document;
             const input = targetDoc.getElementById('pass');
             const botaoAlvo = targetDoc.querySelector('button');
             const statusAlvo = targetDoc.getElementById('status');
-            const btn = document.getElementById('btn');
+            const counterDisplay = document.getElementById('counter');
 
-            btn.disabled = true;
-            btn.innerText = "INJETANDO DICIONÁRIO COMPLEXO...";
+            document.getElementById('btn').disabled = true;
             cronometro();
-            log("MODO OMEGA: 8 DÍGITOS + ESPECIAIS");
+            log("Iniciando varredura profunda...");
 
-            // Função de tentativa individual
-            const tentar = (combo) => {
-                input.value = combo;
-                botaoAlvo.click();
-                totalSenhas++;
-
-                if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
-                    encontrado = true;
-                    document.body.classList.add('found-screen');
-                    alert(`!!! ACESSO TOTAL !!!\nSENHA: ${combo}\nTESTES: ${totalSenhas}\nTEMPO: ${document.getElementById('timer').innerText}`);
-                    return true;
-                }
-                return false;
-            };
-
-            // Gerador Iterativo para evitar estouro de pilha (Stack Overflow)
             const rodarNivel = async (tamanho) => {
                 let indices = new Array(tamanho).fill(0);
                 
                 while (!encontrado) {
-                    // Gera a combinação atual baseada nos índices
-                    let combo = "";
-                    for(let i=0; i<tamanho; i++) combo += charset[indices[i]];
+                    // TESTE EM BLOCO DE 1500 (Aumentei para chegar nos 200k)
+                    for (let b = 0; b < 1500; b++) {
+                        let combo = "";
+                        for(let i=0; i<tamanho; i++) combo += charset[indices[i]];
 
-                    if (tentar(combo)) return;
+                        input.value = combo;
+                        botaoAlvo.click();
+                        totalSenhas++;
 
-                    // Lógica de incremento (odômetro)
-                    let p = tamanho - 1;
-                    while (p >= 0) {
-                        indices[p]++;
-                        if (indices[p] < charset.length) break;
-                        indices[p] = 0;
-                        p--;
+                        if (statusAlvo.innerHTML.includes("CONCEDIDO")) {
+                            encontrado = true;
+                            document.body.classList.add('found-screen');
+                            alert(`SENHA: ${combo}\nTOTAL: ${totalSenhas}`);
+                            return;
+                        }
+
+                        // Incremento
+                        let p = tamanho - 1;
+                        while (p >= 0) {
+                            indices[p]++;
+                            if (indices[p] < charset.length) break;
+                            indices[p] = 0;
+                            p--;
+                        }
+                        if (p < 0) return;
                     }
-                    
-                    if (p < 0) break; // Fim desse tamanho de senha
 
-                    // Controle de interface e velocidade
-                    if (totalSenhas % 800 === 0) {
-                        document.getElementById('counter').innerText = totalSenhas.toLocaleString();
-                        if (totalSenhas % 8000 === 0) log(`Tentando: ${combo}`);
-                        await new Promise(r => setTimeout(r, 1));
-                    }
+                    // Sincroniza contador com a tela e dá um respiro
+                    counterDisplay.innerText = totalSenhas.toLocaleString();
+                    if(totalSenhas % 15000 === 0) log("Processando lote...");
+                    await new Promise(r => setTimeout(r, 0)); 
                 }
             };
 
-            // Inicia do tamanho 1 até o 8
             for (let t = 1; t <= 8; t++) {
                 if (encontrado) break;
-                log(`Iniciando varredura: ${t} dígito(s)...`);
+                log(`Varrendo nível: ${t}`);
                 await rodarNivel(t);
             }
         }
